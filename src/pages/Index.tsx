@@ -1,16 +1,42 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import AppShell from "@/components/AppShell";
+import Dashboard from "./Dashboard";
+import Faturar from "./Faturar";
+import Clientes from "./Clientes";
+import Previsao from "./Previsao";
+import Meta from "./Meta";
+import { supabase } from "@/integrations/supabase/client";
+import { todayISO } from "@/lib/format";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const { session, loading } = useAuth();
+
+  // auto-update overdue
+  useEffect(() => {
+    if (!session) return;
+    supabase.from("receivables")
+      .update({ status: "atrasado" })
+      .lt("vencimento", todayISO())
+      .eq("status", "pendente")
+      .then(() => {});
+  }, [session]);
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
+  if (!session) return <Navigate to="/auth" replace />;
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
+    <AppShell>
+      <Routes>
+        <Route index element={<Dashboard />} />
+        <Route path="faturar" element={<Faturar />} />
+        <Route path="clientes" element={<Clientes />} />
+        <Route path="previsao" element={<Previsao />} />
+        <Route path="meta" element={<Meta />} />
+      </Routes>
+    </AppShell>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
