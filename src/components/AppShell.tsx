@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, Target, TrendingUp, LogOut, Wallet } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Target, TrendingUp, LogOut, Wallet, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 const items = [
   { to: "/", label: "Visão Geral", icon: LayoutDashboard },
   { to: "/faturar", label: "Faturar", icon: FileText },
+  { to: "/faturamentos", label: "Lançamentos", icon: ListChecks },
   { to: "/clientes", label: "Clientes", icon: Users },
-  { to: "/previsao", label: "Previsão", icon: TrendingUp },
   { to: "/meta", label: "Meta", icon: Target },
 ];
 
