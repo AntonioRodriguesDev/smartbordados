@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import AppShell from "@/components/AppShell";
 import Dashboard from "./Dashboard";
 import Faturar from "./Faturar";
+import Faturamentos from "./Faturamentos";
 import Clientes from "./Clientes";
 import Previsao from "./Previsao";
 import Meta from "./Meta";
@@ -31,6 +32,7 @@ const Index = () => {
       <Routes>
         <Route index element={<Dashboard />} />
         <Route path="faturar" element={<Faturar />} />
+        <Route path="faturamentos" element={<Faturamentos />} />
         <Route path="clientes" element={<Clientes />} />
         <Route path="previsao" element={<Previsao />} />
         <Route path="meta" element={<Meta />} />
