@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [invoices, setInvoices] = useState<{ data_faturamento: string; valor: number }[]>([]);
   const [search, setSearch] = useState("");
+  const [meta, setMeta] = useState<{ valor_meta: number; dias_uteis: number } | null>(null);
 
   const load = async () => {
     const { data } = await supabase
@@ -30,6 +31,9 @@ export default function Dashboard() {
       .select("data_faturamento, valor")
       .gte("data_faturamento", monthStart);
     setInvoices(inv || []);
+
+    const { data: g } = await supabase.from("goals").select("valor_meta, dias_uteis").eq("mes", monthStart).maybeSingle();
+    setMeta(g as any);
   };
   useEffect(() => { load(); }, []);
 
@@ -85,6 +89,25 @@ export default function Dashboard() {
         <KCard icon={Clock} label="A vencer (7d)" value={brl(aVencer)} tone="warning" />
         <KCard icon={AlertCircle} label="Atrasado" value={brl(atrasado)} tone="destructive" />
       </div>
+
+      {meta && meta.valor_meta > 0 && (() => {
+        const faturado = invoices.reduce((s, i) => s + Number(i.valor), 0);
+        const pct = (faturado / Number(meta.valor_meta)) * 100;
+        return (
+          <Card className="p-5 shadow-card gradient-primary text-primary-foreground">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <div className="text-xs opacity-80">Meta de faturamento</div>
+                <div className="text-2xl font-bold">{brl(faturado)} <span className="text-sm opacity-80">/ {brl(Number(meta.valor_meta))}</span></div>
+              </div>
+              <div className="text-3xl font-bold">{pct.toFixed(0)}%</div>
+            </div>
+            <div className="w-full bg-primary-foreground/20 rounded-full h-2 overflow-hidden">
+              <div className="h-full bg-primary-foreground transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
+            </div>
+          </Card>
+        );
+      })()}
 
       {chartData.length > 0 && (
         <Card className="p-4 shadow-card">
