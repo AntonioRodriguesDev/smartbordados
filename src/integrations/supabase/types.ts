@@ -14,7 +14,182 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          cnpj: string | null
+          created_at: string
+          dia_corte: number | null
+          dia_pagamento_1: number | null
+          dia_pagamento_2: number | null
+          dias: string | null
+          id: string
+          nome: string
+          tipo_condicao: string
+          user_id: string
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string
+          dia_corte?: number | null
+          dia_pagamento_1?: number | null
+          dia_pagamento_2?: number | null
+          dias?: string | null
+          id?: string
+          nome: string
+          tipo_condicao: string
+          user_id: string
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string
+          dia_corte?: number | null
+          dia_pagamento_1?: number | null
+          dia_pagamento_2?: number | null
+          dias?: string | null
+          id?: string
+          nome?: string
+          tipo_condicao?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          created_at: string
+          dias_uteis: number
+          id: string
+          mes: string
+          user_id: string
+          valor_meta: number
+        }
+        Insert: {
+          created_at?: string
+          dias_uteis: number
+          id?: string
+          mes: string
+          user_id: string
+          valor_meta: number
+        }
+        Update: {
+          created_at?: string
+          dias_uteis?: number
+          id?: string
+          mes?: string
+          user_id?: string
+          valor_meta?: number
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          client_id: string
+          created_at: string
+          data_faturamento: string
+          id: string
+          numero: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          data_faturamento: string
+          id?: string
+          numero: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          data_faturamento?: string
+          id?: string
+          numero?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      receivables: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          invoice_id: string
+          pago_em: string | null
+          parcela: number
+          status: string
+          user_id: string
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          invoice_id: string
+          pago_em?: string | null
+          parcela?: number
+          status?: string
+          user_id: string
+          valor: number
+          vencimento: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          pago_em?: string | null
+          parcela?: number
+          status?: string
+          user_id?: string
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivables_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receivables_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
