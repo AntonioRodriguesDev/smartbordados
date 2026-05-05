@@ -7,14 +7,17 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { brl } from "@/lib/format";
+
+const empty = { nome: "", cnpj: "", tipo_condicao: "DIAS", dias: "30", dia_corte: 15, dia_pagamento_1: 25, dia_pagamento_2: 10 };
 
 export default function Clientes() {
   const [clients, setClients] = useState<any[]>([]);
   const [stats, setStats] = useState<Record<string, { total: number; atraso: number }>>({});
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<any>({ nome: "", cnpj: "", tipo_condicao: "DIAS", dias: "30", dia_corte: 15, dia_pagamento_1: 25, dia_pagamento_2: 10 });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<any>(empty);
 
   const load = async () => {
     const { data } = await supabase.from("clients").select("*").order("nome");
@@ -32,12 +35,24 @@ export default function Clientes() {
   };
   useEffect(() => { load(); }, []);
 
+  const openNew = () => { setEditingId(null); setForm(empty); setOpen(true); };
+  const openEdit = (c: any) => {
+    setEditingId(c.id);
+    setForm({
+      nome: c.nome || "", cnpj: c.cnpj || "", tipo_condicao: c.tipo_condicao || "DIAS",
+      dias: c.dias || "30",
+      dia_corte: c.dia_corte ?? 15, dia_pagamento_1: c.dia_pagamento_1 ?? 25, dia_pagamento_2: c.dia_pagamento_2 ?? 10,
+    });
+    setOpen(true);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const payload: any = {
-      user_id: user.id, nome: form.nome, cnpj: form.cnpj, tipo_condicao: form.tipo_condicao,
+      nome: form.nome, cnpj: form.cnpj, tipo_condicao: form.tipo_condicao,
+      dias: null, dia_corte: null, dia_pagamento_1: null, dia_pagamento_2: null,
     };
     if (form.tipo_condicao === "DIAS") payload.dias = form.dias;
     else {
@@ -45,22 +60,29 @@ export default function Clientes() {
       payload.dia_pagamento_1 = +form.dia_pagamento_1;
       payload.dia_pagamento_2 = form.dia_pagamento_2 ? +form.dia_pagamento_2 : null;
     }
-    const { error } = await supabase.from("clients").insert(payload);
+    let error;
+    if (editingId) {
+      ({ error } = await supabase.from("clients").update(payload).eq("id", editingId));
+    } else {
+      ({ error } = await supabase.from("clients").insert({ ...payload, user_id: user.id }));
+    }
     if (error) return toast.error(error.message);
-    toast.success("Cliente cadastrado!");
+    toast.success(editingId ? "Cliente atualizado!" : "Cliente cadastrado!");
     setOpen(false);
-    setForm({ nome: "", cnpj: "", tipo_condicao: "DIAS", dias: "30", dia_corte: 15, dia_pagamento_1: 25, dia_pagamento_2: 10 });
+    setEditingId(null);
+    setForm(empty);
     load();
   };
 
   const remove = async (id: string) => {
     if (!confirm("Excluir cliente e todos os lançamentos?")) return;
+    await supabase.from("receivables").delete().eq("client_id", id);
+    await supabase.from("invoices").delete().eq("client_id", id);
     await supabase.from("clients").delete().eq("id", id);
     toast.success("Cliente removido");
     load();
   };
 
-  // ranking
   const ranking = [...clients].sort((a, b) => (stats[b.id]?.total || 0) - (stats[a.id]?.total || 0)).slice(0, 5);
 
   return (
@@ -70,12 +92,12 @@ export default function Clientes() {
           <h1 className="text-3xl font-bold">Clientes</h1>
           <p className="text-muted-foreground text-sm">Cadastre condições de pagamento</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(empty); } }}>
           <DialogTrigger asChild>
-            <Button size="lg"><Plus className="w-4 h-4 mr-1" /> Novo</Button>
+            <Button size="lg" onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Novo</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
             <form onSubmit={submit} className="space-y-3">
               <div><Label>Nome</Label><Input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} required /></div>
               <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={e => setForm({ ...form, cnpj: e.target.value })} /></div>
@@ -123,6 +145,9 @@ export default function Clientes() {
                     <div className="text-xs text-muted-foreground">Total</div>
                     <div className="font-semibold text-sm">{brl(stats[c.id]?.total || 0)}</div>
                   </div>
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => remove(c.id)}>
                     <Trash2 className="w-4 h-4 text-destructive" />
                   </Button>
