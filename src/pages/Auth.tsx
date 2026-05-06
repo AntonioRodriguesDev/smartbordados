@@ -6,13 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Wallet } from "lucide-react";
+import logo from "@/assets/logo-smartbordados.png";
+
+const FIXED_USER = "smartbordados";
+const FIXED_PASS = "10121908";
+const FIXED_EMAIL = "smartbordados@smartbordados.app";
 
 export default function Auth() {
   const nav = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [usuario, setUsuario] = useState("");
+  const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -23,56 +26,51 @@ export default function Auth() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (usuario.trim().toLowerCase() !== FIXED_USER || senha !== FIXED_PASS) {
+      toast.error("Usuário ou senha incorretos");
+      return;
+    }
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email, password,
+      let { error } = await supabase.auth.signInWithPassword({ email: FIXED_EMAIL, password: FIXED_PASS });
+      if (error) {
+        // First time: create the account
+        const { error: signUpErr } = await supabase.auth.signUp({
+          email: FIXED_EMAIL, password: FIXED_PASS,
           options: { emailRedirectTo: `${window.location.origin}/` },
         });
-        if (error) throw error;
-        toast.success("Conta criada! Entrando...");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (signUpErr) throw signUpErr;
+        ({ error } = await supabase.auth.signInWithPassword({ email: FIXED_EMAIL, password: FIXED_PASS }));
         if (error) throw error;
       }
       nav("/", { replace: true });
     } catch (err: any) {
-      toast.error(err.message || "Erro");
+      toast.error(err.message || "Erro ao entrar");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md p-8 shadow-elevated">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/40 to-background p-4">
+      <Card className="w-full max-w-md p-8 shadow-elevated border-border/60">
         <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mb-3 shadow-elevated">
-            <Wallet className="text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold">Ateliê Financeiro</h1>
-          <p className="text-sm text-muted-foreground">Controle de faturamento simples e rápido</p>
+          <img src={logo} alt="Smart Bordados" className="w-full max-w-[260px] object-contain mb-2" />
+          <p className="text-sm text-muted-foreground">Painel financeiro</p>
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <Label htmlFor="email">E-mail</Label>
-            <Input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+            <Label htmlFor="usuario">Usuário</Label>
+            <Input id="usuario" autoComplete="username" required value={usuario} onChange={e => setUsuario(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="password">Senha</Label>
-            <Input id="password" type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
+            <Label htmlFor="senha">Senha</Label>
+            <Input id="senha" type="password" autoComplete="current-password" required value={senha} onChange={e => setSenha(e.target.value)} />
           </div>
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
-            {loading ? "Carregando..." : mode === "login" ? "Entrar" : "Criar conta"}
+          <Button type="submit" className="w-full gradient-primary text-primary-foreground shadow-elevated" size="lg" disabled={loading}>
+            {loading ? "Entrando..." : "Entrar"}
           </Button>
         </form>
-        <button
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-          className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground"
-        >
-          {mode === "login" ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}
-        </button>
       </Card>
     </div>
   );
