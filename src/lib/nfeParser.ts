@@ -57,19 +57,32 @@ export async function parseNFePdf(file: File): Promise<NFeData> {
   const parseBR = (s: string) => parseFloat(s.replace(/\./g, "").replace(",", "."));
   const moneyRe = /\d{1,3}(?:\.\d{3})*,\d{2}/g;
 
-  // Strategy 1: DUPLICATAS block — sum of all "VALOR" entries (parcelas).
-  const dupIdx = text.search(/DUPLICATAS?/i);
-  if (dupIdx >= 0) {
-    const after = text.slice(dupIdx);
-    const stop = after.search(/C[ÁA]LCULO\s+DO\s+IMPOSTO|TRANSPORTAD|DADOS\s+DO\s+PRODUTO|DADOS\s+ADICIONAIS/i);
-    const slice = stop > 0 ? after.slice(0, stop) : after.slice(0, 600);
-    // Skip the header word "VALOR" itself; collect monetary numbers.
-    const nums = Array.from(slice.matchAll(moneyRe)).map(m => parseBR(m[0]));
-    if (nums.length) {
-      // Sum all duplicata values (handles parceladas).
-      valor = +nums.reduce((a, b) => a + b, 0).toFixed(2);
+ const dupIdx = text.search(/DUPLICATAS?/i);
+
+if (dupIdx >= 0) {
+  const after = text.slice(dupIdx);
+
+  const stop = after.search(/C[ÁA]LCULO\s+DO\s+IMPOSTO|TRANSPORTAD|DADOS\s+DO\s+PRODUTO|DADOS\s+ADICIONAIS/i);
+  const slice = stop > 0 ? after.slice(0, stop) : after.slice(0, 600);
+
+  // 🔥 NOVA ESTRATÉGIA: pegar linhas com padrão de duplicata
+  const linhas = slice.split('\n');
+
+  const valores: number[] = [];
+
+  for (const linha of linhas) {
+    // Linha típica: 000750/A  26/05/2026  1.096,20
+    const match = linha.match(/\d{2}\/\d{2}\/\d{2,4}.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+
+    if (match) {
+      valores.push(parseBR(match[1]));
     }
   }
+
+  if (valores.length) {
+    valor = +valores.reduce((a, b) => a + b, 0).toFixed(2);
+  }
+}
 
   // Strategy 2: VALOR TOTAL DA NOTA — the LAST money in the totals row block
   // (labels row appears first, then values row; total is the rightmost value).
