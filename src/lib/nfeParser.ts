@@ -52,34 +52,40 @@ export async function parseNFePdf(file: File): Promise<NFeData> {
               || text.match(/N[UÚ]MERO[^0-9]{0,30}0*(\d{3,9})/i);
   if (nMatch) numero = nMatch[1];
 
-  // Valor total da nota. In DANFE the labels block is followed by the values block.
-  // Strategy 1: direct match (label immediately before value)
+  // Valor a cobrar (duplicata) — é o que importa para faturamento.
   let valor: number | undefined;
   const parseBR = (s: string) => parseFloat(s.replace(/\./g, "").replace(",", "."));
   const moneyRe = /\d{1,3}(?:\.\d{3})*,\d{2}/g;
 
-  const v1 = text.match(/VALOR\s+TOTAL\s+DA\s+NOTA[^0-9]{0,30}(\d{1,3}(?:\.\d{3})*,\d{2})/i);
-  if (v1) valor = parseBR(v1[1]);
-
-  // Strategy 2: find the totals block between "VALOR TOTAL DA NOTA" label and next section
-  if (valor == null) {
-    const labelIdx = text.search(/VALOR\s+TOTAL\s+DA\s+NOTA/i);
-    if (labelIdx >= 0) {
-      const after = text.slice(labelIdx);
-      // stop at the next big section header
-      const stopMatch = after.search(/TRANSPORTAD|DADOS\s+DO\s+PRODUTO|C[ÁA]LCULO\s+DO\s+ISSQN|DADOS\s+ADICIONAIS/i);
-      const slice = stopMatch > 0 ? after.slice(0, stopMatch) : after.slice(0, 800);
-      const nums = Array.from(slice.matchAll(moneyRe)).map(m => parseBR(m[0]));
-      if (nums.length) {
-        // VALOR TOTAL DA NOTA is the last label of the ICMS totals row,
-        // so its value is typically the LAST monetary number in this block.
-        valor = nums[nums.length - 1];
-      }
+  // Strategy 1: DUPLICATAS block — sum of all "VALOR" entries (parcelas).
+  const dupIdx = text.search(/DUPLICATAS?/i);
+  if (dupIdx >= 0) {
+    const after = text.slice(dupIdx);
+    const stop = after.search(/C[ÁA]LCULO\s+DO\s+IMPOSTO|TRANSPORTAD|DADOS\s+DO\s+PRODUTO|DADOS\s+ADICIONAIS/i);
+    const slice = stop > 0 ? after.slice(0, stop) : after.slice(0, 600);
+    // Skip the header word "VALOR" itself; collect monetary numbers.
+    const nums = Array.from(slice.matchAll(moneyRe)).map(m => parseBR(m[0]));
+    if (nums.length) {
+      // Sum all duplicata values (handles parceladas).
+      valor = +nums.reduce((a, b) => a + b, 0).toFixed(2);
     }
   }
 
-  // Strategy 3 (fallback): largest monetary value in the document
-  if (valor == null) {
+  // Strategy 2: VALOR TOTAL DA NOTA — the LAST money in the totals row block
+  // (labels row appears first, then values row; total is the rightmost value).
+  if (valor == null || valor === 0) {
+    const labelIdx = text.search(/VALOR\s+TOTAL\s+DA\s+NOTA/i);
+    if (labelIdx >= 0) {
+      const after = text.slice(labelIdx);
+      const stopMatch = after.search(/TRANSPORTAD|DADOS\s+DO\s+PRODUTO|C[ÁA]LCULO\s+DO\s+ISSQN|DADOS\s+ADICIONAIS/i);
+      const slice = stopMatch > 0 ? after.slice(0, stopMatch) : after.slice(0, 800);
+      const nums = Array.from(slice.matchAll(moneyRe)).map(m => parseBR(m[0])).filter(n => n > 0);
+      if (nums.length) valor = nums[nums.length - 1];
+    }
+  }
+
+  // Strategy 3 (fallback): largest monetary value in the document.
+  if (valor == null || valor === 0) {
     const allNums = Array.from(text.matchAll(moneyRe)).map(m => parseBR(m[0]));
     if (allNums.length) valor = Math.max(...allNums);
   }
