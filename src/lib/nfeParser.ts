@@ -65,22 +65,39 @@ if (dupIdx >= 0) {
   const stop = after.search(/C[ÁA]LCULO\s+DO\s+IMPOSTO|TRANSPORTAD|DADOS\s+DO\s+PRODUTO|DADOS\s+ADICIONAIS/i);
   const slice = stop > 0 ? after.slice(0, stop) : after.slice(0, 600);
 
-  // 🔥 NOVA ESTRATÉGIA: pegar linhas com padrão de duplicata
-  const linhas = slice.split('\n');
+// Strategy 1: DUPLICATAS (valor a cobrar real)
+const dupIdx = text.search(/DUPLICATAS?/i);
 
-  const valores: number[] = [];
+if (dupIdx >= 0) {
+  const after = text.slice(dupIdx);
 
-  for (const linha of linhas) {
-    // Linha típica: 000750/A  26/05/2026  1.096,20
-    const match = linha.match(/\d{2}\/\d{2}\/\d{2,4}.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+  const stop = after.search(
+    /C[ÁA]LCULO\s+DO\s+IMPOSTO|TRANSPORTAD|DADOS\s+DO\s+PRODUTO|DADOS\s+ADICIONAIS/i
+  );
 
-    if (match) {
-      valores.push(parseBR(match[1]));
-    }
+  const slice = stop > 0 ? after.slice(0, stop) : after.slice(0, 800);
+
+  // 🔥 Estratégia principal: valor vinculado ao campo "VALOR" dentro de DUPLICATAS
+  let match = slice.match(
+    /DUPLICATAS[\s\S]*?VALOR[^0-9]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i
+  );
+
+  // 🔁 fallback 1: se não encontrar com DUPLICATAS explícito
+  if (!match) {
+    match = slice.match(
+      /VALOR[^0-9]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i
+    );
   }
 
-  if (valores.length) {
-    valor = +valores.reduce((a, b) => a + b, 0).toFixed(2);
+  // 🔁 fallback 2: pegar valor mais próximo de uma data (caso layout diferente)
+  if (!match) {
+    match = slice.match(
+      /\d{2}\/\d{2}\/\d{2,4}[^0-9]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/
+    );
+  }
+
+  if (match) {
+    valor = parseBR(match[1]);
   }
 }
 
