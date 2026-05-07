@@ -57,49 +57,30 @@ export async function parseNFePdf(file: File): Promise<NFeData> {
   const parseBR = (s: string) => parseFloat(s.replace(/\./g, "").replace(",", "."));
   const moneyRe = /\d{1,3}(?:\.\d{3})*,\d{2}/g;
 
- const dupIdx = text.search(/DUPLICATAS?/i);
-
-if (dupIdx >= 0) {
-  const after = text.slice(dupIdx);
-
-  const stop = after.search(/C[ÁA]LCULO\s+DO\s+IMPOSTO|TRANSPORTAD|DADOS\s+DO\s+PRODUTO|DADOS\s+ADICIONAIS/i);
-  const slice = stop > 0 ? after.slice(0, stop) : after.slice(0, 600);
-
-// Strategy 1: DUPLICATAS (valor a cobrar real)
-const dupIdx = text.search(/DUPLICATAS?/i);
-
-if (dupIdx >= 0) {
-  const after = text.slice(dupIdx);
-
-  const stop = after.search(
-    /C[ÁA]LCULO\s+DO\s+IMPOSTO|TRANSPORTAD|DADOS\s+DO\s+PRODUTO|DADOS\s+ADICIONAIS/i
-  );
-
-  const slice = stop > 0 ? after.slice(0, stop) : after.slice(0, 800);
-
-  // 🔥 Estratégia principal: valor vinculado ao campo "VALOR" dentro de DUPLICATAS
-  let match = slice.match(
-    /DUPLICATAS[\s\S]*?VALOR[^0-9]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i
-  );
-
-  // 🔁 fallback 1: se não encontrar com DUPLICATAS explícito
-  if (!match) {
-    match = slice.match(
-      /VALOR[^0-9]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i
+  // Strategy 1: DUPLICATAS (valor a cobrar real)
+  const dupIdx = text.search(/DUPLICATAS?/i);
+  if (dupIdx >= 0) {
+    const after = text.slice(dupIdx);
+    const stop = after.search(
+      /C[ÁA]LCULO\s+DO\s+IMPOSTO|TRANSPORTAD|DADOS\s+DO\s+PRODUTO|DADOS\s+ADICIONAIS/i
     );
-  }
+    const slice = stop > 0 ? after.slice(0, stop) : after.slice(0, 800);
 
-  // 🔁 fallback 2: pegar valor mais próximo de uma data (caso layout diferente)
-  if (!match) {
-    match = slice.match(
-      /\d{2}\/\d{2}\/\d{2,4}[^0-9]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/
+    let match = slice.match(
+      /DUPLICATAS[\s\S]*?VALOR[^0-9]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i
     );
+    if (!match) {
+      match = slice.match(/VALOR[^0-9]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i);
+    }
+    if (!match) {
+      match = slice.match(
+        /\d{2}\/\d{2}\/\d{2,4}[^0-9]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/
+      );
+    }
+    if (match) {
+      valor = parseBR(match[1]);
+    }
   }
-
-  if (match) {
-    valor = parseBR(match[1]);
-  }
-}
 
   // Strategy 2: VALOR TOTAL DA NOTA — the LAST money in the totals row block
   // (labels row appears first, then values row; total is the rightmost value).
