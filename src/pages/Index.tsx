@@ -8,6 +8,7 @@ import Faturamentos from "./Faturamentos";
 import Clientes from "./Clientes";
 import Previsao from "./Previsao";
 import Meta from "./Meta";
+import Funcionarios from "./Funcionarios";
 import { supabase } from "@/integrations/supabase/client";
 import { todayISO } from "@/lib/format";
 
