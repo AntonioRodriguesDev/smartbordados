@@ -53,6 +53,159 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_payments: {
+        Row: {
+          created_at: string
+          data_pagamento: string
+          employee_id: string
+          id: string
+          observacao: string | null
+          tipo: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data_pagamento?: string
+          employee_id: string
+          id?: string
+          observacao?: string | null
+          tipo?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data_pagamento?: string
+          employee_id?: string
+          id?: string
+          observacao?: string | null
+          tipo?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      employee_skills: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          nivel: number
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          nivel?: number
+          nome: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          nivel?: number
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      employee_vales: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string | null
+          employee_id: string
+          id: string
+          quitado: boolean
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          employee_id: string
+          id?: string
+          quitado?: boolean
+          user_id: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          employee_id?: string
+          id?: string
+          quitado?: boolean
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          cargo: string | null
+          cpf: string | null
+          created_at: string
+          data_admissao: string | null
+          data_nascimento: string | null
+          dia_pagamento: number | null
+          email: string | null
+          endereco: string | null
+          foto_url: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          salario: number
+          setor: string | null
+          status: string
+          telefone: string | null
+          user_id: string
+        }
+        Insert: {
+          cargo?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_admissao?: string | null
+          data_nascimento?: string | null
+          dia_pagamento?: number | null
+          email?: string | null
+          endereco?: string | null
+          foto_url?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          salario?: number
+          setor?: string | null
+          status?: string
+          telefone?: string | null
+          user_id: string
+        }
+        Update: {
+          cargo?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_admissao?: string | null
+          data_nascimento?: string | null
+          dia_pagamento?: number | null
+          email?: string | null
+          endereco?: string | null
+          foto_url?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          salario?: number
+          setor?: string | null
+          status?: string
+          telefone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           created_at: string
