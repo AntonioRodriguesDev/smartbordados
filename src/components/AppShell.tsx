@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, Target, LogOut, ListChecks } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Target, LogOut, ListChecks, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ const items = [
   { to: "/faturar", label: "Faturar", icon: FileText },
   { to: "/faturamentos", label: "Lançamentos", icon: ListChecks },
   { to: "/clientes", label: "Clientes", icon: Users },
+  { to: "/funcionarios", label: "Funcionários", icon: UserCog },
   { to: "/meta", label: "Meta", icon: Target },
 ];
 
@@ -50,7 +51,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <main className="p-4 md:p-8 max-w-6xl mx-auto">{children}</main>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border grid grid-cols-5 z-50">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border grid grid-cols-6 z-50">
         {items.map(({ to, label, icon: Icon }) => {
           const active = loc.pathname === to;
           return (

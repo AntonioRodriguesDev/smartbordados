@@ -8,6 +8,7 @@ import Faturamentos from "./Faturamentos";
 import Clientes from "./Clientes";
 import Previsao from "./Previsao";
 import Meta from "./Meta";
+import Funcionarios from "./Funcionarios";
 import { supabase } from "@/integrations/supabase/client";
 import { todayISO } from "@/lib/format";
 
@@ -36,6 +37,7 @@ const Index = () => {
         <Route path="clientes" element={<Clientes />} />
         <Route path="previsao" element={<Previsao />} />
         <Route path="meta" element={<Meta />} />
+        <Route path="funcionarios" element={<Funcionarios />} />
       </Routes>
     </AppShell>
   );
