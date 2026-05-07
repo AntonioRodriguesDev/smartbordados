@@ -37,6 +37,7 @@ const Index = () => {
         <Route path="clientes" element={<Clientes />} />
         <Route path="previsao" element={<Previsao />} />
         <Route path="meta" element={<Meta />} />
+        <Route path="funcionarios" element={<Funcionarios />} />
       </Routes>
     </AppShell>
   );
