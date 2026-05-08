@@ -58,6 +58,8 @@ export default function Funcionarios() {
   const [valeForm, setValeForm] = useState({ valor: "", data: todayISO(), descricao: "" });
   const [skillOpen, setSkillOpen] = useState(false);
   const [skillForm, setSkillForm] = useState({ nome: "Corte", nivel: 3 });
+  const [payOpen, setPayOpen] = useState(false);
+  const [payForm, setPayForm] = useState({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
 
   const load = async () => {
     const [e, s, v, p] = await Promise.all([
@@ -103,8 +105,10 @@ export default function Funcionarios() {
     .sort((a, b) => a.prox.localeCompare(b.prox))
     .slice(0, 5);
 
-  const valeSaldo = (id: string) => selVales.filter(v => v.employee_id === id && !v.quitado).reduce((s, v) => s + Number(v.valor), 0);
-  const totalReceber = selected ? Number(selected.salario || 0) - valeSaldo(selected.id) : 0;
+  const valeSaldo = (id: string) => vales.filter(v => v.employee_id === id && !v.quitado).reduce((s, v) => s + Number(v.valor), 0);
+  const pagoNoMes = (id: string) => payments.filter(p => p.employee_id === id && p.data_pagamento?.startsWith(mesAtual)).reduce((s, p) => s + Number(p.valor), 0);
+  const selPagoMes = selected ? pagoNoMes(selected.id) : 0;
+  const totalReceber = selected ? Math.max(Number(selected.salario || 0) - selPagoMes - valeSaldo(selected.id), 0) : 0;
 
   // CRUD
   const openNew = () => { setEditingId(null); setForm(emptyEmp); setOpen(true); };
@@ -186,19 +190,30 @@ export default function Funcionarios() {
     load();
   };
 
-  const registerPayment = async () => {
+  const submitPayment = async (ev: React.FormEvent) => {
+    ev.preventDefault();
     if (!selected) return;
-    if (!confirm(`Registrar pagamento de ${brl(totalReceber)} para ${selected.nome}?`)) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const valor = Number(payForm.valor);
+    if (!valor || valor <= 0) return toast.error("Informe um valor válido");
     const { error } = await supabase.from("employee_payments").insert({
-      user_id: user.id, employee_id: selected.id, valor: totalReceber,
-      data_pagamento: todayISO(), tipo: "salario",
+      user_id: user.id, employee_id: selected.id, valor,
+      data_pagamento: payForm.data, tipo: payForm.tipo, observacao: payForm.observacao || null,
     });
     if (error) return toast.error(error.message);
-    // mark vales as quitado
-    await supabase.from("employee_vales").update({ quitado: true }).eq("employee_id", selected.id).eq("quitado", false);
+    if (payForm.quitarVales) {
+      await supabase.from("employee_vales").update({ quitado: true }).eq("employee_id", selected.id).eq("quitado", false);
+    }
     toast.success("Pagamento registrado");
+    setPayOpen(false);
+    setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
+    load();
+  };
+
+  const removePayment = async (id: string) => {
+    if (!confirm("Excluir este pagamento?")) return;
+    await supabase.from("employee_payments").delete().eq("id", id);
     load();
   };
 
@@ -351,18 +366,22 @@ export default function Funcionarios() {
               </div>
 
               {/* Mini cards financeiros */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <Card className="p-3 bg-secondary/40 border-0">
                   <div className="text-[10px] uppercase text-muted-foreground">Salário</div>
-                  <div className="font-semibold">{brl(Number(selected.salario || 0))}</div>
+                  <div className="font-semibold text-sm">{brl(Number(selected.salario || 0))}</div>
+                </Card>
+                <Card className="p-3 bg-secondary/40 border-0">
+                  <div className="text-[10px] uppercase text-muted-foreground">Pago no mês</div>
+                  <div className="font-semibold text-sm text-success">{brl(selPagoMes)}</div>
                 </Card>
                 <Card className="p-3 bg-secondary/40 border-0">
                   <div className="text-[10px] uppercase text-muted-foreground">Vales abertos</div>
-                  <div className="font-semibold text-warning">{brl(valeSaldo(selected.id))}</div>
+                  <div className="font-semibold text-sm text-warning">{brl(valeSaldo(selected.id))}</div>
                 </Card>
                 <Card className="p-3 gradient-primary text-primary-foreground border-0">
-                  <div className="text-[10px] uppercase opacity-90">Total a receber</div>
-                  <div className="font-semibold">{brl(totalReceber)}</div>
+                  <div className="text-[10px] uppercase opacity-90">Saldo a pagar</div>
+                  <div className="font-semibold text-sm">{brl(totalReceber)}</div>
                 </Card>
               </div>
 
@@ -387,19 +406,70 @@ export default function Funcionarios() {
                 </TabsContent>
 
                 <TabsContent value="pagamento" className="space-y-3 pt-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="text-sm">
-                      <div className="text-muted-foreground text-xs">Próximo pagamento</div>
-                      <div className="font-semibold">{fmtDate(nextPayDate(selected.dia_pagamento))} · {brl(totalReceber)}</div>
+                      <div className="text-muted-foreground text-xs">Pagamentos do mês ({selPayments.filter(p => p.data_pagamento?.startsWith(mesAtual)).length})</div>
+                      <div className="font-semibold">Saldo restante: <span className="text-primary">{brl(totalReceber)}</span></div>
                     </div>
-                    <Button onClick={registerPayment}>Registrar pagamento</Button>
+                    <Dialog open={payOpen} onOpenChange={setPayOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" onClick={() => setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false })}>
+                          <Plus className="w-4 h-4 mr-1" /> Registrar pagamento
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader><DialogTitle>Registrar pagamento</DialogTitle></DialogHeader>
+                        <form onSubmit={submitPayment} className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label>Tipo</Label>
+                              <Select value={payForm.tipo} onValueChange={v => setPayForm({ ...payForm, tipo: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="adiantamento">Adiantamento</SelectItem>
+                                  <SelectItem value="salario">Salário</SelectItem>
+                                  <SelectItem value="bonus">Bônus</SelectItem>
+                                  <SelectItem value="outros">Outros</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Data</Label>
+                              <Input type="date" required value={payForm.data} onChange={e => setPayForm({ ...payForm, data: e.target.value })} />
+                            </div>
+                          </div>
+                          <div>
+                            <Label>Valor</Label>
+                            <Input type="number" step="0.01" required value={payForm.valor} onChange={e => setPayForm({ ...payForm, valor: e.target.value })} placeholder={brl(totalReceber)} />
+                            <div className="flex gap-1 mt-1">
+                              <Button type="button" variant="outline" size="sm" className="text-[10px] h-6" onClick={() => setPayForm({ ...payForm, valor: String(totalReceber.toFixed(2)) })}>Saldo</Button>
+                              <Button type="button" variant="outline" size="sm" className="text-[10px] h-6" onClick={() => setPayForm({ ...payForm, valor: (Number(selected.salario || 0) / 2).toFixed(2) })}>½ salário</Button>
+                            </div>
+                          </div>
+                          <div><Label>Observação</Label><Input value={payForm.observacao} onChange={e => setPayForm({ ...payForm, observacao: e.target.value })} /></div>
+                          {valeSaldo(selected.id) > 0 && (
+                            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <input type="checkbox" checked={payForm.quitarVales} onChange={e => setPayForm({ ...payForm, quitarVales: e.target.checked })} />
+                              Quitar vales abertos ({brl(valeSaldo(selected.id))})
+                            </label>
+                          )}
+                          <Button type="submit" className="w-full">Salvar pagamento</Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
                     {selPayments.length === 0 && <p className="text-xs text-muted-foreground">Sem histórico ainda.</p>}
                     {selPayments.map(p => (
                       <div key={p.id} className="flex justify-between items-center p-2 rounded bg-secondary/40 text-sm">
-                        <span>{fmtDate(p.data_pagamento)} · {p.tipo}</span>
-                        <span className="font-semibold">{brl(Number(p.valor))}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">{fmtDate(p.data_pagamento)} <Badge variant="secondary" className="text-[10px]">{p.tipo}</Badge></div>
+                          {p.observacao && <div className="text-[10px] text-muted-foreground truncate">{p.observacao}</div>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{brl(Number(p.valor))}</span>
+                          <Button variant="ghost" size="icon" onClick={() => removePayment(p.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                        </div>
                       </div>
                     ))}
                   </div>
