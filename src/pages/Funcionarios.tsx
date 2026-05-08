@@ -21,7 +21,7 @@ const initials = (n: string) => n.split(" ").map(p => p[0]).slice(0, 2).join("")
 
 function daysUntilBirthday(iso?: string | null) {
   if (!iso) return null;
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
   const [, m, d] = iso.split("-").map(Number);
   let next = new Date(today.getFullYear(), m - 1, d);
   if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
@@ -338,7 +338,7 @@ export default function Funcionarios() {
                   </div>
                   <div className="text-right text-[10px] text-muted-foreground">
                     {e.data_nascimento && <div>🎂 {dias === 0 ? "Hoje" : `${dias}d`}</div>}
-                    <div>Pgto {String(e.dia_pagamento || 5).padStart(2,"0")}</div>
+                    <div>Pgto {String(e.dia_pagamento || 5).padStart(2, "0")}</div>
                   </div>
                 </button>
               );
@@ -386,12 +386,11 @@ export default function Funcionarios() {
               </div>
 
               <Tabs defaultValue="dados">
-                <TabsList className="grid grid-cols-5 w-full">
+                <TabsList className="grid grid-cols-4 w-full">
                   <TabsTrigger value="dados">Dados</TabsTrigger>
                   <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
                   <TabsTrigger value="vales">Vales</TabsTrigger>
                   <TabsTrigger value="habilidades">Habilidades</TabsTrigger>
-                  <TabsTrigger value="hist">Histórico</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="dados" className="space-y-2 text-sm pt-3">

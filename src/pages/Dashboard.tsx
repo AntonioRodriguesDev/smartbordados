@@ -27,14 +27,14 @@ function businessDaysInMonth(year: number, month0: number, untilDay?: number) {
 }
 
 function daysUntilBirthday(iso: string) {
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
   const [, m, d] = iso.split("-").map(Number);
   let next = new Date(today.getFullYear(), m - 1, d);
   if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
   return Math.round((next.getTime() - today.getTime()) / 86400000);
 }
 
-const MES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const MES_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export default function Dashboard() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -61,6 +61,7 @@ export default function Dashboard() {
   useEffect(() => { load(); }, []);
 
   const marcarPago = async (id: string) => {
+    if (!confirm("Confirmar o recebimento deste valor?")) return;
     const { error } = await supabase.from("receivables").update({ status: "pago", pago_em: todayISO() }).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Recebimento confirmado");
@@ -95,7 +96,7 @@ export default function Dashboard() {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const chartData = Array.from({ length: lastDay }, (_, i) => {
     const day = String(i + 1).padStart(2, "0");
-    const iso = `${monthStart.slice(0,8)}${day}`;
+    const iso = `${monthStart.slice(0, 8)}${day}`;
     return { dia: day, valor: dailyMap.get(iso) || 0, isToday: iso === today, isFuture: iso > today };
   });
 
@@ -106,7 +107,7 @@ export default function Dashboard() {
     invoices.forEach(i => map.set(i.client_id, (map.get(i.client_id) || 0) + Number(i.valor)));
     const nameById = new Map(clients.map(c => [c.id, c.nome]));
     return Array.from(map.entries())
-      .sort((a,b) => b[1] - a[1])
+      .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([id, total]) => ({ id, nome: nameById.get(id) || "—", total }));
   }, [invoices, clients]);
@@ -120,120 +121,115 @@ export default function Dashboard() {
   }, [employees]);
 
   return (
-    <div className="space-y-3">
-      <header className="flex items-end justify-between">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold leading-tight">Visão Geral</h1>
-          <p className="text-muted-foreground text-xs">Meta e faturamento em tempo real</p>
-        </div>
-        <span className="text-xs text-muted-foreground font-medium">{MES_PT[now.getMonth()]}/{now.getFullYear()}</span>
-      </header>
-
+    <div className="space-y-4 pb-10">
       {/* TOP CARDS */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* META DO DIA */}
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-success font-semibold">
-            <span className="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center"><Target className="w-3 h-3" /></span>
+        <Card className="p-3 glass shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden relative">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-success font-bold relative z-10">
+            <span className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center transition-transform group-hover:rotate-6"><Target className="w-3.5 h-3.5" /></span>
             Meta do Dia
           </div>
-          <div className="flex items-center justify-between mt-2 gap-2">
+          <div className="flex items-center justify-between mt-3 gap-3 relative z-10">
             <div className="min-w-0">
-              <div className="text-lg font-bold leading-tight truncate">{brl(metaDiaria)}</div>
-              <div className="text-[10px] text-muted-foreground">Meta diária</div>
-              <div className="text-base font-bold mt-1 truncate">{brl(faturadoHoje)}</div>
-              <div className="text-[10px] text-muted-foreground">Faturado hoje</div>
+              <div className="text-xl font-black tracking-tighter truncate">{brl(metaDiaria)}</div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Meta Diária</div>
+              <div className="text-lg font-bold mt-1.5 truncate text-success">{brl(faturadoHoje)}</div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Faturado Hoje</div>
             </div>
             <RingProgress value={pctDia} color="hsl(var(--success))" />
           </div>
-          <Progress value={pctDia} color="bg-success" className="mt-2" />
+          <Progress value={pctDia} color="bg-success" className="mt-3 h-1.5" />
           {metaDiaria > 0 && (
-            <p className="text-[10px] text-muted-foreground mt-1.5 leading-tight">
-              {faltaMeta > 0 ? <>Faltam <span className="text-success font-semibold">{brl(faltaMeta)}</span></> : <span className="text-success font-semibold">Meta atingida! 🎉</span>}
+            <p className="text-[10px] text-muted-foreground mt-2 font-medium flex items-center gap-1.5 relative z-10">
+              {faltaMeta > 0 ? (
+                <>Faltam <span className="text-success font-bold px-1 py-0.5 bg-success/5 rounded">{brl(faltaMeta)}</span></>
+              ) : (
+                <span className="text-success font-bold flex items-center gap-1">Meta atingida! 🚀</span>
+              )}
             </p>
           )}
         </Card>
 
         {/* ACUMULADO DO MÊS */}
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-primary font-semibold">
-            <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center"><TrendingUp className="w-3 h-3" /></span>
+        <Card className="p-3 glass shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden relative">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary font-bold relative z-10">
+            <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center transition-transform group-hover:rotate-6"><TrendingUp className="w-3.5 h-3.5" /></span>
             Acumulado do Mês
           </div>
-          <div className="mt-2 space-y-1.5">
+          <div className="mt-3 space-y-2 relative z-10">
             <div>
-              <div className="text-lg font-bold leading-tight truncate">{brl(faturadoMes)}</div>
-              <div className="text-[10px] text-muted-foreground">Faturado</div>
+              <div className="text-xl font-black tracking-tighter truncate">{brl(faturadoMes)}</div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Total Faturado</div>
             </div>
             <div>
-              <div className="text-base font-semibold leading-tight truncate">{brl(metaMes)}</div>
-              <div className="text-[10px] text-muted-foreground">Meta do mês</div>
+              <div className="text-base font-bold tracking-tight truncate text-foreground/80">{brl(metaMes)}</div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Meta Mensal</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Progress value={pctMes} color="bg-primary" />
-            <span className="text-[10px] font-semibold text-primary w-9 text-right">{pctMes.toFixed(0)}%</span>
+          <div className="flex items-center gap-2 mt-3 relative z-10">
+            <Progress value={pctMes} color="bg-primary" className="h-1.5" />
+            <span className="text-[10px] font-black text-primary w-8 text-right">{pctMes.toFixed(0)}%</span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1 leading-tight truncate">
-            {metaMes > 0 ? <>Faltam <span className="text-primary font-semibold">{brl(faltaMetaMes)}</span></> : <Link to="/meta" className="text-primary underline">Definir meta</Link>}
+          <p className="text-[10px] text-muted-foreground mt-2 font-medium relative z-10">
+            {metaMes > 0 ? (
+              <>Faltam <span className="text-primary font-bold px-1 py-0.5 bg-primary/5 rounded">{brl(faltaMetaMes)}</span></>
+            ) : (
+              <Link to="/meta" className="text-primary underline hover:text-primary/80 transition-colors">Definir meta</Link>
+            )}
           </p>
         </Card>
 
         {/* RECEBIMENTOS */}
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-warning font-semibold">
-            <span className="w-6 h-6 rounded-full bg-warning/10 flex items-center justify-center"><DollarSign className="w-3 h-3" /></span>
-            Recebimentos
+        <Card className="p-3 glass shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden relative">
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-warning font-bold">
+              <span className="w-7 h-7 rounded-lg bg-warning/10 flex items-center justify-center transition-transform group-hover:rotate-6"><DollarSign className="w-3.5 h-3.5" /></span>
+              Fluxo de Caixa
+            </div>
+            <Link to="/financeiro" className="text-[10px] text-primary font-bold uppercase tracking-widest hover:underline transition-all">Detalhes</Link>
           </div>
-          <div className="mt-2 space-y-1.5">
+          <div className="mt-3 grid grid-cols-2 gap-3 relative z-10">
             <div>
-              <div className="text-lg font-bold leading-tight truncate">{brl(recebidoMes)}</div>
-              <div className="text-[10px] text-muted-foreground">Recebido no mês</div>
+              <div className="text-lg font-black tracking-tighter truncate text-warning">{brl(recebidoMes)}</div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Recebido</div>
             </div>
             <div>
-              <div className="text-base font-semibold leading-tight truncate">{brl(totalReceber)}</div>
-              <div className="text-[10px] text-muted-foreground">A receber</div>
+              <div className="text-lg font-black tracking-tighter truncate">{brl(totalReceber)}</div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">A Receber</div>
             </div>
           </div>
-          {aVencer7.length > 0 && (
-            <div className="flex items-center gap-1 mt-2 text-[10px] text-warning bg-warning/10 rounded px-1.5 py-1 leading-tight">
-              <AlertCircle className="w-3 h-3 shrink-0" />
-              {aVencer7.length} vencendo em 7d
+          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between relative z-10">
+            <div>
+              <div className="text-lg font-black tracking-tighter text-destructive leading-none">{brl(totalAtrasado)}</div>
+              <div className="text-[9px] text-destructive/80 font-bold uppercase tracking-widest flex items-center gap-1 mt-1">
+                <AlertCircle className="w-3 h-3" /> Em Atraso ({atrasados.length})
+              </div>
             </div>
-          )}
-        </Card>
-
-        {/* EM ATRASO */}
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-destructive font-semibold">
-            <span className="w-6 h-6 rounded-full bg-destructive/10 flex items-center justify-center"><AlertCircle className="w-3 h-3" /></span>
-            Em Atraso
+            {aVencer7.length > 0 && (
+              <div className="flex items-center gap-1 text-[9px] text-warning font-bold uppercase bg-warning/5 rounded-md px-1.5 py-0.5 leading-tight border border-warning/10">
+                {aVencer7.length} Urgentes
+              </div>
+            )}
           </div>
-          <div className="mt-2">
-            <div className="text-xl font-bold text-destructive truncate">{brl(totalAtrasado)}</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">{atrasados.length} {atrasados.length === 1 ? "título" : "títulos"} em atraso</div>
-          </div>
-          <Link to="/dashboard" className="mt-3 inline-flex items-center justify-center w-full text-[10px] font-semibold text-destructive bg-destructive/10 hover:bg-destructive/15 rounded py-1.5 transition-colors">
-            Ver detalhes
-          </Link>
         </Card>
       </div>
 
       {/* MIDDLE ROW: Chart + Aniversários */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-        <Card className="p-4 shadow-card xl:col-span-2">
-          <div className="flex items-center justify-between mb-2">
+        <Card className="p-3 glass shadow-card xl:col-span-2">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary"><BarChart3 className="w-3 h-3" /></span>
-              <h3 className="font-semibold uppercase text-[10px] tracking-wider">Faturamento Diário</h3>
+              <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><BarChart3 className="w-3.5 h-3.5" /></span>
+              <h3 className="font-bold uppercase text-[10px] tracking-widest text-foreground/70">Faturamento Diário</h3>
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
               <LegendDot color="hsl(var(--success))" label="Faturado" />
               <LegendDot color="hsl(var(--primary))" label="Hoje" />
-              <span className="flex items-center gap-1"><span className="w-3 h-px border-t border-dashed border-muted-foreground" /> Meta</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-px border-t border-dashed border-muted-foreground" /> Meta</span>
             </div>
           </div>
-          <div className="h-44">
+          <div className="h-36">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                 <XAxis dataKey="dia" stroke="hsl(var(--muted-foreground))" fontSize={9} tickLine={false} axisLine={false} interval={1} />
@@ -250,14 +246,14 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center justify-between mb-2">
+        <Card className="p-3 glass shadow-card">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center text-accent-foreground"><Cake className="w-3 h-3" /></span>
-              <h3 className="font-semibold uppercase text-[10px] tracking-wider">Aniversários</h3>
+              <span className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center text-accent-foreground"><Cake className="w-3.5 h-3.5" /></span>
+              <h3 className="font-bold uppercase text-[10px] tracking-widest text-foreground/70">Aniversários</h3>
             </div>
-            <Link to="/funcionarios" className="text-[10px] text-primary font-semibold hover:underline flex items-center gap-0.5">
-              Ver <ArrowRight className="w-2.5 h-2.5" />
+            <Link to="/funcionarios" className="text-[10px] text-primary font-bold uppercase tracking-widest hover:underline flex items-center gap-1">
+              Ver <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           {aniversarios.length === 0 ? (
@@ -285,14 +281,14 @@ export default function Dashboard() {
       </div>
 
       {/* BOTTOM: Próximos recebimentos + Top clientes */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-        <Card className="p-4 shadow-card xl:col-span-2">
-          <div className="flex items-center justify-between mb-2">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-2">
+        <Card className="p-3 shadow-card xl:col-span-2">
+          <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center text-success"><DollarSign className="w-3 h-3" /></span>
+              <span className="w-5 h-5 rounded-full bg-success/10 flex items-center justify-center text-success"><DollarSign className="w-3 h-3" /></span>
               <h3 className="font-semibold uppercase text-[10px] tracking-wider">Próximos Recebimentos</h3>
             </div>
-            <Link to="/dashboard" className="text-[10px] text-primary font-semibold hover:underline flex items-center gap-0.5">
+            <Link to="/financeiro" className="text-[10px] text-primary font-semibold hover:underline flex items-center gap-0.5">
               Ver todos <ArrowRight className="w-2.5 h-2.5" />
             </Link>
           </div>
@@ -339,10 +335,10 @@ export default function Dashboard() {
           )}
         </Card>
 
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center justify-between mb-2">
+        <Card className="p-3 shadow-card">
+          <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Users className="w-3 h-3" /></span>
+              <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Users className="w-3 h-3" /></span>
               <h3 className="font-semibold uppercase text-[10px] tracking-wider">Top Clientes</h3>
             </div>
             <Link to="/clientes" className="text-[10px] text-primary font-semibold hover:underline flex items-center gap-0.5">
