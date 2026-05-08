@@ -58,6 +58,8 @@ export default function Funcionarios() {
   const [valeForm, setValeForm] = useState({ valor: "", data: todayISO(), descricao: "" });
   const [skillOpen, setSkillOpen] = useState(false);
   const [skillForm, setSkillForm] = useState({ nome: "Corte", nivel: 3 });
+  const [payOpen, setPayOpen] = useState(false);
+  const [payForm, setPayForm] = useState({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
 
   const load = async () => {
     const [e, s, v, p] = await Promise.all([
