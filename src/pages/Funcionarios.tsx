@@ -105,8 +105,10 @@ export default function Funcionarios() {
     .sort((a, b) => a.prox.localeCompare(b.prox))
     .slice(0, 5);
 
-  const valeSaldo = (id: string) => selVales.filter(v => v.employee_id === id && !v.quitado).reduce((s, v) => s + Number(v.valor), 0);
-  const totalReceber = selected ? Number(selected.salario || 0) - valeSaldo(selected.id) : 0;
+  const valeSaldo = (id: string) => vales.filter(v => v.employee_id === id && !v.quitado).reduce((s, v) => s + Number(v.valor), 0);
+  const pagoNoMes = (id: string) => payments.filter(p => p.employee_id === id && p.data_pagamento?.startsWith(mesAtual)).reduce((s, p) => s + Number(p.valor), 0);
+  const selPagoMes = selected ? pagoNoMes(selected.id) : 0;
+  const totalReceber = selected ? Math.max(Number(selected.salario || 0) - selPagoMes - valeSaldo(selected.id), 0) : 0;
 
   // CRUD
   const openNew = () => { setEditingId(null); setForm(emptyEmp); setOpen(true); };
