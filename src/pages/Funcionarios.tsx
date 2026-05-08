@@ -190,19 +190,30 @@ export default function Funcionarios() {
     load();
   };
 
-  const registerPayment = async () => {
+  const submitPayment = async (ev: React.FormEvent) => {
+    ev.preventDefault();
     if (!selected) return;
-    if (!confirm(`Registrar pagamento de ${brl(totalReceber)} para ${selected.nome}?`)) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const valor = Number(payForm.valor);
+    if (!valor || valor <= 0) return toast.error("Informe um valor válido");
     const { error } = await supabase.from("employee_payments").insert({
-      user_id: user.id, employee_id: selected.id, valor: totalReceber,
-      data_pagamento: todayISO(), tipo: "salario",
+      user_id: user.id, employee_id: selected.id, valor,
+      data_pagamento: payForm.data, tipo: payForm.tipo, observacao: payForm.observacao || null,
     });
     if (error) return toast.error(error.message);
-    // mark vales as quitado
-    await supabase.from("employee_vales").update({ quitado: true }).eq("employee_id", selected.id).eq("quitado", false);
+    if (payForm.quitarVales) {
+      await supabase.from("employee_vales").update({ quitado: true }).eq("employee_id", selected.id).eq("quitado", false);
+    }
     toast.success("Pagamento registrado");
+    setPayOpen(false);
+    setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
+    load();
+  };
+
+  const removePayment = async (id: string) => {
+    if (!confirm("Excluir este pagamento?")) return;
+    await supabase.from("employee_payments").delete().eq("id", id);
     load();
   };
 
