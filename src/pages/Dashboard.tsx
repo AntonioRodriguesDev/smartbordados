@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { brl, fmtDate, todayISO } from "@/lib/format";
-import { Target, TrendingUp, AlertCircle, BarChart3, Cake, DollarSign, Users, ArrowRight, Check } from "lucide-react";
+import { sumCostsForMonth, type CostRow } from "@/lib/costs";
+import { Target, TrendingUp, AlertCircle, BarChart3, DollarSign, Users, ArrowRight, Check, TrendingDown, Wallet } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine, Cell } from "recharts";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -24,14 +25,6 @@ function businessDaysInMonth(year: number, month0: number, untilDay?: number) {
     if (wd >= 1 && wd <= 5) count++;
   }
   return count;
-}
-
-function daysUntilBirthday(iso: string) {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const [, m, d] = iso.split("-").map(Number);
-  let next = new Date(today.getFullYear(), m - 1, d);
-  if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
-  return Math.round((next.getTime() - today.getTime()) / 86400000);
 }
 
 const MES_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
