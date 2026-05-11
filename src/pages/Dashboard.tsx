@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { brl, fmtDate, todayISO } from "@/lib/format";
-import { Target, TrendingUp, AlertCircle, BarChart3, Cake, DollarSign, Users, ArrowRight, Check } from "lucide-react";
+import { sumCostsForMonth, type CostRow } from "@/lib/costs";
+import { Target, TrendingUp, AlertCircle, BarChart3, DollarSign, Users, ArrowRight, Check, TrendingDown, Wallet } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine, Cell } from "recharts";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -26,37 +27,32 @@ function businessDaysInMonth(year: number, month0: number, untilDay?: number) {
   return count;
 }
 
-function daysUntilBirthday(iso: string) {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const [, m, d] = iso.split("-").map(Number);
-  let next = new Date(today.getFullYear(), m - 1, d);
-  if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
-  return Math.round((next.getTime() - today.getTime()) / 86400000);
-}
-
 const MES_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export default function Dashboard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [invoices, setInvoices] = useState<{ data_faturamento: string; valor: number; client_id: string }[]>([]);
   const [clients, setClients] = useState<{ id: string; nome: string }[]>([]);
-  const [employees, setEmployees] = useState<{ id: string; nome: string; data_nascimento: string | null; cargo: string | null }[]>([]);
+  const [emps, setEmps] = useState<{ id: string; salario: number }[]>([]);
+  const [costs, setCosts] = useState<CostRow[]>([]);
   const [meta, setMeta] = useState<{ valor_meta: number; dias_uteis: number } | null>(null);
 
   const load = async () => {
     const monthStart = todayISO().slice(0, 7) + "-01";
-    const [rec, inv, g, cli, emp] = await Promise.all([
+    const [rec, inv, g, cli, emp, co] = await Promise.all([
       supabase.from("receivables").select("id, vencimento, valor, status, invoices(numero), clients(id, nome)").order("vencimento", { ascending: true }),
       supabase.from("invoices").select("data_faturamento, valor, client_id").gte("data_faturamento", monthStart),
       supabase.from("goals").select("valor_meta, dias_uteis").eq("mes", monthStart).maybeSingle(),
       supabase.from("clients").select("id, nome"),
-      supabase.from("employees").select("id, nome, data_nascimento, cargo").eq("status", "ativo"),
+      supabase.from("employees").select("id, salario").eq("status", "ativo"),
+      supabase.from("costs").select("*"),
     ]);
     setRows((rec.data as any) || []);
     setInvoices(inv.data || []);
     setMeta(g.data as any);
     setClients(cli.data || []);
-    setEmployees(emp.data || []);
+    setEmps((emp.data as any) || []);
+    setCosts((co.data as any) || []);
   };
   useEffect(() => { load(); }, []);
 
@@ -112,13 +108,13 @@ export default function Dashboard() {
       .map(([id, total]) => ({ id, nome: nameById.get(id) || "—", total }));
   }, [invoices, clients]);
 
-  const aniversarios = useMemo(() => {
-    return employees
-      .filter(e => e.data_nascimento)
-      .map(e => ({ ...e, dias: daysUntilBirthday(e.data_nascimento!) }))
-      .sort((a, b) => a.dias - b.dias)
-      .slice(0, 4);
-  }, [employees]);
+  const folha = emps.reduce((s, e) => s + Number(e.salario || 0), 0);
+  const custosLanc = sumCostsForMonth(costs, today.slice(0, 7));
+  const custosOutros = custosLanc.fixo + custosLanc.parcelado + custosLanc.unico;
+  const custosTotais = folha + custosOutros;
+  const lucroEstimado = faturadoMes - custosTotais;
+  const margemPct = faturadoMes > 0 ? (lucroEstimado / faturadoMes) * 100 : 0;
+  const pontoEquilibrio = custosTotais;
 
   return (
     <div className="space-y-4 pb-10">
@@ -215,7 +211,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* MIDDLE ROW: Chart + Aniversários */}
+      {/* MIDDLE ROW: Chart + Lucro Estimado */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
         <Card className="p-3 glass shadow-card xl:col-span-2">
           <div className="flex items-center justify-between mb-3">
@@ -249,39 +245,39 @@ export default function Dashboard() {
         <Card className="p-3 glass shadow-card">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center text-accent-foreground"><Cake className="w-3.5 h-3.5" /></span>
-              <h3 className="font-bold uppercase text-[10px] tracking-widest text-foreground/70">Aniversários</h3>
+              <span className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center text-success"><TrendingUp className="w-3.5 h-3.5" /></span>
+              <h3 className="font-bold uppercase text-[10px] tracking-widest text-foreground/70">Lucro Estimado</h3>
             </div>
-            <Link to="/funcionarios" className="text-[10px] text-primary font-bold uppercase tracking-widest hover:underline flex items-center gap-1">
-              Ver <ArrowRight className="w-3 h-3" />
+            <Link to="/custos" className="text-[10px] text-primary font-bold uppercase tracking-widest hover:underline flex items-center gap-1">
+              Custos <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          {aniversarios.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-3 text-center">Sem cadastro.</p>
-          ) : (
-            <ul className="space-y-2">
-              {aniversarios.map(a => {
-                const [, m, d] = a.data_nascimento!.split("-");
-                return (
-                  <li key={a.id} className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-full gradient-gold flex items-center justify-center text-accent-foreground font-bold text-[10px] shrink-0">
-                      {d}/{m}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-xs truncate">{a.nome}</div>
-                      <div className="text-[10px] text-muted-foreground truncate">{a.cargo || "—"}</div>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{a.dias === 0 ? "Hoje 🎂" : a.dias === 1 ? "Amanhã" : `${a.dias}d`}</Badge>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-1.5 min-w-0 flex-1">
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground font-medium">Faturamento</div>
+                <div className="text-sm font-bold truncate">{brl(faturadoMes)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground font-medium">Custos Totais</div>
+                <div className="text-sm font-bold text-destructive truncate">{brl(custosTotais)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground font-medium">Lucro</div>
+                <div className={`text-base font-black truncate ${lucroEstimado >= 0 ? "text-success" : "text-destructive"}`}>{brl(lucroEstimado)}</div>
+              </div>
+            </div>
+            <RingProgress value={Math.max(margemPct, 0)} color={lucroEstimado >= 0 ? "hsl(var(--success))" : "hsl(var(--destructive))"} />
+          </div>
+          <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[10px]">
+            <span className="text-muted-foreground uppercase font-bold tracking-wider">Ponto de equilíbrio</span>
+            <span className="font-bold">{brl(pontoEquilibrio)}</span>
+          </div>
         </Card>
       </div>
 
-      {/* BOTTOM: Próximos recebimentos + Top clientes */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-2">
+      {/* BOTTOM: Próximos recebimentos + Custos + Top clientes */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-2">
         <Card className="p-3 shadow-card xl:col-span-2">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
@@ -333,6 +329,31 @@ export default function Dashboard() {
               </table>
             </div>
           )}
+        </Card>
+
+        <Card className="p-3 shadow-card">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-destructive/10 flex items-center justify-center text-destructive"><Wallet className="w-3 h-3" /></span>
+              <h3 className="font-semibold uppercase text-[10px] tracking-wider">Custos do Mês</h3>
+            </div>
+            <Link to="/custos" className="text-[10px] text-primary font-semibold hover:underline flex items-center gap-0.5">
+              Ver <ArrowRight className="w-2.5 h-2.5" />
+            </Link>
+          </div>
+          <ul className="space-y-1.5 text-xs">
+            <li className="flex justify-between"><span className="text-muted-foreground">Funcionários</span><span className="font-semibold">{brl(folha)}</span></li>
+            <li className="flex justify-between"><span className="text-muted-foreground">Custos Fixos</span><span className="font-semibold">{brl(custosLanc.fixo)}</span></li>
+            <li className="flex justify-between"><span className="text-muted-foreground">Parcelas</span><span className="font-semibold">{brl(custosLanc.parcelado)}</span></li>
+            <li className="flex justify-between"><span className="text-muted-foreground">Únicos</span><span className="font-semibold">{brl(custosLanc.unico)}</span></li>
+            <li className="flex justify-between pt-1.5 mt-1 border-t border-border/60 font-bold">
+              <span>Total</span><span className="text-destructive">{brl(custosTotais)}</span>
+            </li>
+            <li className="flex justify-between text-[10px] pt-1">
+              <span className="text-muted-foreground uppercase tracking-wider">Lucro estimado</span>
+              <span className={`font-bold ${lucroEstimado >= 0 ? "text-success" : "text-destructive"}`}>{brl(lucroEstimado)}</span>
+            </li>
+          </ul>
         </Card>
 
         <Card className="p-3 shadow-card">
