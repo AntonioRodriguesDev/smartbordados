@@ -276,8 +276,8 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* BOTTOM: Próximos recebimentos + Top clientes */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-2">
+      {/* BOTTOM: Próximos recebimentos + Custos + Top clientes */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-2">
         <Card className="p-3 shadow-card xl:col-span-2">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
