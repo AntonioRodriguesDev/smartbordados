@@ -4,40 +4,40 @@
 
 @layer base {
   :root {
-    --background: 30 20% 98%;
-    --foreground: 240 12% 12%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 12% 16%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 12% 16%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 8 48% 64%;
+    --primary: 35 55% 60%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 35 55% 60%;
 
-    --secondary: 30 22% 93%;
-    --secondary-foreground: 240 12% 22%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 30 15% 95%;
-    --muted-foreground: 240 8% 40%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
     --accent: 35 55% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --warning: 35 88% 55%;
-    --warning-foreground: 30 50% 12%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
-    --success: 152 55% 42%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    --border: 30 18% 90%;
-    --input: 30 18% 90%;
-    --ring: 8 48% 64%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 35 55% 60%;
 
     --radius: 1rem;
 
@@ -50,14 +50,14 @@
     --shadow-elevated: 0 20px 48px -12px hsl(8 48% 64% / 0.15), 0 8px 16px -4px hsl(8 48% 64% / 0.1);
     --shadow-gold: 0 10px 32px -6px hsl(35 55% 60% / 0.3);
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 12% 22%;
-    --sidebar-primary: 8 48% 64%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 35 55% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 25% 97%;
-    --sidebar-accent-foreground: 240 12% 22%;
-    --sidebar-border: 30 18% 92%;
-    --sidebar-ring: 8 48% 64%;
+    --sidebar-accent: 222 47% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 47% 15%;
+    --sidebar-ring: 35 55% 60%;
   }
 
   .dark {
@@ -94,7 +94,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    background-image: 
+    background-image:
       radial-gradient(at 0% 0%, hsla(35, 55%, 60%, 0.05) 0px, transparent 50%),
       radial-gradient(at 100% 100%, hsla(8, 48%, 64%, 0.05) 0px, transparent 50%);
     background-attachment: fixed;
@@ -132,7 +132,7 @@
   }
 
   .glass {
-    @apply bg-card/70 backdrop-blur-xl border border-white/40;
+    @apply bg-card/80 backdrop-blur-xl border border-white/60;
   }
 
   .glass-sidebar {
@@ -148,13 +148,33 @@
       opacity: 0;
       transform: translateY(10px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
 }
+
 @layer utilities {
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+a[href*="lovable.dev"],
+iframe[src*="lovable.dev"],
+div[style*="Edit with Lovable"],
+.lovable-badge {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  z-index: -9999 !important;
 }

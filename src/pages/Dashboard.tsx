@@ -117,27 +117,27 @@ export default function Dashboard() {
   const pontoEquilibrio = custosTotais;
 
   return (
-    <div className="space-y-4 pb-10">
+    <div className="space-y-3 pb-4">
       {/* TOP CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
         {/* META DO DIA */}
-        <Card className="p-3 glass shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden relative">
+        <Card className="p-2.5 glass shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden relative">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-success font-bold relative z-10">
             <span className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center transition-transform group-hover:rotate-6"><Target className="w-3.5 h-3.5" /></span>
             Meta do Dia
           </div>
-          <div className="flex items-center justify-between mt-3 gap-3 relative z-10">
+          <div className="flex items-center justify-between mt-2.5 gap-2 relative z-10">
             <div className="min-w-0">
               <div className="text-xl font-black tracking-tighter truncate">{brl(metaDiaria)}</div>
               <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Meta Diária</div>
-              <div className="text-lg font-bold mt-1.5 truncate text-success">{brl(faturadoHoje)}</div>
+              <div className="text-lg font-bold mt-1 truncate text-success">{brl(faturadoHoje)}</div>
               <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Faturado Hoje</div>
             </div>
             <RingProgress value={pctDia} color="hsl(var(--success))" />
           </div>
-          <Progress value={pctDia} color="bg-success" className="mt-3 h-1.5" />
+          <Progress value={pctDia} color="bg-success" className="mt-2.5 h-1.5" />
           {metaDiaria > 0 && (
-            <p className="text-[10px] text-muted-foreground mt-2 font-medium flex items-center gap-1.5 relative z-10">
+            <p className="text-[10px] text-muted-foreground mt-1.5 font-medium flex items-center gap-1.5 relative z-10">
               {faltaMeta > 0 ? (
                 <>Faltam <span className="text-success font-bold px-1 py-0.5 bg-success/5 rounded">{brl(faltaMeta)}</span></>
               ) : (
@@ -148,12 +148,12 @@ export default function Dashboard() {
         </Card>
 
         {/* ACUMULADO DO MÊS */}
-        <Card className="p-3 glass shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden relative">
+        <Card className="p-2.5 glass shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden relative">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary font-bold relative z-10">
             <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center transition-transform group-hover:rotate-6"><TrendingUp className="w-3.5 h-3.5" /></span>
             Acumulado do Mês
           </div>
-          <div className="mt-3 space-y-2 relative z-10">
+          <div className="mt-2.5 space-y-1 relative z-10">
             <div>
               <div className="text-xl font-black tracking-tighter truncate">{brl(faturadoMes)}</div>
               <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Total Faturado</div>
@@ -163,11 +163,11 @@ export default function Dashboard() {
               <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Meta Mensal</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-3 relative z-10">
+          <div className="flex items-center gap-2 mt-2.5 relative z-10">
             <Progress value={pctMes} color="bg-primary" className="h-1.5" />
             <span className="text-[10px] font-black text-primary w-8 text-right">{pctMes.toFixed(0)}%</span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2 font-medium relative z-10">
+          <p className="text-[10px] text-muted-foreground mt-1.5 font-medium relative z-10">
             {metaMes > 0 ? (
               <>Faltam <span className="text-primary font-bold px-1 py-0.5 bg-primary/5 rounded">{brl(faltaMetaMes)}</span></>
             ) : (
@@ -177,7 +177,7 @@ export default function Dashboard() {
         </Card>
 
         {/* RECEBIMENTOS */}
-        <Card className="p-3 glass shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden relative">
+        <Card className="p-2.5 glass shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden relative">
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-warning font-bold">
               <span className="w-7 h-7 rounded-lg bg-warning/10 flex items-center justify-center transition-transform group-hover:rotate-6"><DollarSign className="w-3.5 h-3.5" /></span>
@@ -185,7 +185,7 @@ export default function Dashboard() {
             </div>
             <Link to="/financeiro" className="text-[10px] text-primary font-bold uppercase tracking-widest hover:underline transition-all">Detalhes</Link>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-3 relative z-10">
+          <div className="mt-2.5 grid grid-cols-2 gap-2 relative z-10">
             <div>
               <div className="text-lg font-black tracking-tighter truncate text-warning">{brl(recebidoMes)}</div>
               <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Recebido</div>
@@ -195,7 +195,7 @@ export default function Dashboard() {
               <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">A Receber</div>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between relative z-10">
+          <div className="mt-2.5 pt-2.5 border-t border-border/40 flex items-center justify-between relative z-10">
             <div>
               <div className="text-lg font-black tracking-tighter text-destructive leading-none">{brl(totalAtrasado)}</div>
               <div className="text-[9px] text-destructive/80 font-bold uppercase tracking-widest flex items-center gap-1 mt-1">
@@ -213,8 +213,8 @@ export default function Dashboard() {
 
       {/* MIDDLE ROW: Chart + Lucro Estimado */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-        <Card className="p-3 glass shadow-card xl:col-span-2">
-          <div className="flex items-center justify-between mb-3">
+        <Card className="p-2.5 glass shadow-card xl:col-span-2">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><BarChart3 className="w-3.5 h-3.5" /></span>
               <h3 className="font-bold uppercase text-[10px] tracking-widest text-foreground/70">Faturamento Diário</h3>
@@ -242,8 +242,8 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card className="p-3 glass shadow-card">
-          <div className="flex items-center justify-between mb-3">
+        <Card className="p-2.5 glass shadow-card">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <span className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center text-success"><TrendingUp className="w-3.5 h-3.5" /></span>
               <h3 className="font-bold uppercase text-[10px] tracking-widest text-foreground/70">Lucro Estimado</h3>
@@ -278,7 +278,7 @@ export default function Dashboard() {
 
       {/* BOTTOM: Próximos recebimentos + Custos + Top clientes */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-2">
-        <Card className="p-3 shadow-card xl:col-span-2">
+        <Card className="p-2.5 shadow-card xl:col-span-2">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-success/10 flex items-center justify-center text-success"><DollarSign className="w-3 h-3" /></span>
@@ -315,7 +315,7 @@ export default function Dashboard() {
                         <td className="py-1.5 px-1 text-right font-semibold whitespace-nowrap">{brl(Number(r.valor))}</td>
                         <td className="py-1.5 px-1 text-center">
                           {atrasado ? <Badge className="bg-destructive/15 text-destructive hover:bg-destructive/20 text-[10px] px-1.5">Atrasado</Badge>
-                            : <Badge className="bg-warning/15 text-warning-foreground hover:bg-warning/20 text-[10px] px-1.5">A Vencer</Badge>}
+                            : <Badge className="bg-warning/15 text-warning hover:bg-warning/20 text-[10px] px-1.5">A Vencer</Badge>}
                         </td>
                         <td className="py-1.5 px-1 text-right">
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-success hover:text-success hover:bg-success/10" onClick={() => marcarPago(r.id)} title="Marcar como recebido">
@@ -331,7 +331,7 @@ export default function Dashboard() {
           )}
         </Card>
 
-        <Card className="p-3 shadow-card">
+        <Card className="p-2.5 shadow-card">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-destructive/10 flex items-center justify-center text-destructive"><Wallet className="w-3 h-3" /></span>
@@ -341,7 +341,7 @@ export default function Dashboard() {
               Ver <ArrowRight className="w-2.5 h-2.5" />
             </Link>
           </div>
-          <ul className="space-y-1.5 text-xs">
+          <ul className="space-y-1 text-xs">
             <li className="flex justify-between"><span className="text-muted-foreground">Funcionários</span><span className="font-semibold">{brl(folha)}</span></li>
             <li className="flex justify-between"><span className="text-muted-foreground">Custos Fixos</span><span className="font-semibold">{brl(custosLanc.fixo)}</span></li>
             <li className="flex justify-between"><span className="text-muted-foreground">Parcelas</span><span className="font-semibold">{brl(custosLanc.parcelado)}</span></li>
@@ -356,7 +356,7 @@ export default function Dashboard() {
           </ul>
         </Card>
 
-        <Card className="p-3 shadow-card">
+        <Card className="p-2.5 shadow-card">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Users className="w-3 h-3" /></span>
@@ -369,7 +369,7 @@ export default function Dashboard() {
           {topClientes.length === 0 ? (
             <p className="text-xs text-muted-foreground py-4 text-center">Sem faturamento.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               {topClientes.map((c, i) => (
                 <li key={c.id} className="flex items-center gap-2">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${i === 0 ? "gradient-gold text-accent-foreground" : "bg-secondary text-muted-foreground"}`}>{i + 1}</div>

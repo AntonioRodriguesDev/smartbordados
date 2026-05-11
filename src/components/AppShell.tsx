@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import BirthdayBanner from "@/components/BirthdayBanner";
-import logo from "@/assets/logo-smartbordados.png";
+import logo from "@/assets/logo-smartbordados.jpg";
 
 const items = [
   { to: "/", label: "Visão Geral", icon: LayoutDashboard },
@@ -26,7 +26,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-52">
       <aside className="hidden md:flex fixed inset-y-0 left-0 w-52 glass-sidebar flex-col p-4 z-50">
         <div className="px-2 py-4 mb-4 flex items-center justify-center">
-          <img src={logo} alt="Smart Bordados" className="w-full max-w-[160px] object-contain drop-shadow-sm" />
+          <img src={logo} alt="Smart Bordados" className="w-full max-w-[160px] object-contain drop-shadow-sm rounded-xl" />
         </div>
         <nav className="flex-1 space-y-1">
           {items.map(({ to, label, icon: Icon }) => {
@@ -49,12 +49,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile top bar with logo */}
-      <header className="md:hidden sticky top-0 z-40 glass border-b border-border/50 px-4 py-2 flex items-center justify-between">
-        <img src={logo} alt="Smart Bordados" className="h-10 object-contain" />
-        <Button variant="ghost" size="icon" onClick={logout} className="text-muted-foreground"><LogOut className="w-4 h-4" /></Button>
+      <header className="md:hidden sticky top-0 z-40 bg-sidebar text-sidebar-foreground px-4 py-2 flex items-center justify-between">
+        <img src={logo} alt="Smart Bordados" className="h-10 object-contain rounded-lg" />
+        <Button variant="ghost" size="icon" onClick={logout} className="text-sidebar-foreground/70 hover:text-destructive"><LogOut className="w-4 h-4" /></Button>
       </header>
 
-      <main className="p-4 md:p-4 max-w-7xl mx-auto animate-fade-in-up">
+      <main className="p-4 md:p-4 max-w-[1600px] mx-auto animate-fade-in-up">
         <BirthdayBanner />
         {children}
       </main>

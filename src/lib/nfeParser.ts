@@ -103,11 +103,16 @@ export async function parseNFePdf(file: File): Promise<NFeData> {
 
   // Data de emissão: look for "DATA DA EMISSÃO" dd/mm/yyyy or yy
   let dataEmissao: string | undefined;
-  const dMatch = text.match(/DATA\s+DA\s+EMISS[ÃA]O[^0-9]{0,20}(\d{2})\/(\d{2})\/(\d{2,4})/i);
+  const dMatch = text.match(/EMISS[ÃA]O[^0-9]{0,100}?(\d{2})\/(\d{2})\/(\d{2,4})/i);
   if (dMatch) {
     let [, dd, mm, yy] = dMatch;
     if (yy.length === 2) yy = "20" + yy;
     dataEmissao = `${yy}-${mm}-${dd}`;
+  } else {
+    const firstDate = text.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    if (firstDate) {
+      dataEmissao = `${firstDate[3]}-${firstDate[2]}-${firstDate[1]}`;
+    }
   }
 
   return { numero, valor, cnpjDestinatario, dataEmissao, rawText: text };

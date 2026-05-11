@@ -56,7 +56,6 @@ export default function Auth() {
       <Card className="w-full max-w-md p-8 shadow-elevated border-border/60">
         <div className="flex flex-col items-center mb-6">
           <img src={logo} alt="Smart Bordados" className="w-full max-w-[260px] object-contain mb-2" />
-          <p className="text-sm text-muted-foreground">Painel financeiro</p>
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div>

@@ -17,7 +17,7 @@ import { Link } from "react-router-dom";
 
 type Cat = { id: string; nome: string; tipo_padrao: string; cor: string | null };
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"];
+const COLORS = ["#cca366", "#e6b889", "#b08d57", "#1e293b", "#d4af37", "#8c6e46", "#10b981", "#ef4444"];
 
 export default function Custos() {
   const [cats, setCats] = useState<Cat[]>([]);
@@ -280,7 +280,7 @@ export default function Custos() {
                       <td className="py-2 px-2 text-center text-muted-foreground">{c.dia_vencimento ? `dia ${c.dia_vencimento}` : "—"}</td>
                       <td className="py-2 px-2 text-center">
                         {!c.ativo ? <Badge variant="outline" className="text-[10px]">Inativo</Badge>
-                          : c.tipo === "unico" ? (c.pago ? <Badge className="bg-success/15 text-success text-[10px]">Pago</Badge> : <Badge className="bg-warning/15 text-warning-foreground text-[10px]">Pendente</Badge>)
+                          : c.tipo === "unico" ? (c.pago ? <Badge className="bg-success/15 text-success text-[10px]">Pago</Badge> : <Badge className="bg-warning/15 text-warning text-[10px]">Pendente</Badge>)
                           : c.tipo === "parcelado" && (c.parcelas_pagas >= (c.parcelas_total || 0)) ? <Badge className="bg-success/15 text-success text-[10px]">Quitado</Badge>
                           : <Badge className="bg-success/15 text-success text-[10px]">Ativo</Badge>}
                       </td>

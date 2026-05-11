@@ -20,7 +20,7 @@ export default function Financeiro() {
     setLoading(true);
     const { data, error } = await supabase
       .from("receivables")
-      .select("*, clients(nome), invoices(numero)")
+      .select("*, clients(nome), invoices(numero, data_faturamento)")
       .order("vencimento", { ascending: true });
     
     if (error) toast.error(error.message);
@@ -135,6 +135,7 @@ export default function Financeiro() {
                 <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-border/40">
                   <th className="text-left font-bold py-4 px-4">Cliente</th>
                   <th className="text-left font-bold py-4 px-4">Documento</th>
+                  <th className="text-left font-bold py-4 px-4">Emissão</th>
                   <th className="text-left font-bold py-4 px-4">Vencimento</th>
                   <th className="text-right font-bold py-4 px-4">Valor</th>
                   <th className="text-center font-bold py-4 px-4">Status</th>
@@ -151,7 +152,8 @@ export default function Financeiro() {
                     <tr key={r.id} className="hover:bg-secondary/20 transition-colors group">
                       <td className="py-3 px-4 font-medium">{r.clients?.nome}</td>
                       <td className="py-3 px-4 text-muted-foreground">NF {r.invoices?.numero || "—"}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.vencimento)}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{r.invoices?.data_faturamento ? fmtDate(r.invoices.data_faturamento) : "—"}</td>
+                      <td className="py-3 px-4 font-medium">{fmtDate(r.vencimento)}</td>
                       <td className="py-3 px-4 text-right font-bold">{brl(Number(r.valor))}</td>
                       <td className="py-3 px-4 text-center">
                         {r.status === "pago" ? (
