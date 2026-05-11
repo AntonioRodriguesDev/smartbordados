@@ -108,13 +108,13 @@ export default function Dashboard() {
       .map(([id, total]) => ({ id, nome: nameById.get(id) || "—", total }));
   }, [invoices, clients]);
 
-  const aniversarios = useMemo(() => {
-    return employees
-      .filter(e => e.data_nascimento)
-      .map(e => ({ ...e, dias: daysUntilBirthday(e.data_nascimento!) }))
-      .sort((a, b) => a.dias - b.dias)
-      .slice(0, 4);
-  }, [employees]);
+  const folha = emps.reduce((s, e) => s + Number(e.salario || 0), 0);
+  const custosLanc = sumCostsForMonth(costs, today.slice(0, 7));
+  const custosOutros = custosLanc.fixo + custosLanc.parcelado + custosLanc.unico;
+  const custosTotais = folha + custosOutros;
+  const lucroEstimado = faturadoMes - custosTotais;
+  const margemPct = faturadoMes > 0 ? (lucroEstimado / faturadoMes) * 100 : 0;
+  const pontoEquilibrio = custosTotais;
 
   return (
     <div className="space-y-4 pb-10">
@@ -211,7 +211,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* MIDDLE ROW: Chart + Aniversários */}
+      {/* MIDDLE ROW: Chart + Lucro Estimado */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
         <Card className="p-3 glass shadow-card xl:col-span-2">
           <div className="flex items-center justify-between mb-3">
@@ -245,34 +245,34 @@ export default function Dashboard() {
         <Card className="p-3 glass shadow-card">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center text-accent-foreground"><Cake className="w-3.5 h-3.5" /></span>
-              <h3 className="font-bold uppercase text-[10px] tracking-widest text-foreground/70">Aniversários</h3>
+              <span className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center text-success"><TrendingUp className="w-3.5 h-3.5" /></span>
+              <h3 className="font-bold uppercase text-[10px] tracking-widest text-foreground/70">Lucro Estimado</h3>
             </div>
-            <Link to="/funcionarios" className="text-[10px] text-primary font-bold uppercase tracking-widest hover:underline flex items-center gap-1">
-              Ver <ArrowRight className="w-3 h-3" />
+            <Link to="/custos" className="text-[10px] text-primary font-bold uppercase tracking-widest hover:underline flex items-center gap-1">
+              Custos <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          {aniversarios.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-3 text-center">Sem cadastro.</p>
-          ) : (
-            <ul className="space-y-2">
-              {aniversarios.map(a => {
-                const [, m, d] = a.data_nascimento!.split("-");
-                return (
-                  <li key={a.id} className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-full gradient-gold flex items-center justify-center text-accent-foreground font-bold text-[10px] shrink-0">
-                      {d}/{m}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-xs truncate">{a.nome}</div>
-                      <div className="text-[10px] text-muted-foreground truncate">{a.cargo || "—"}</div>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{a.dias === 0 ? "Hoje 🎂" : a.dias === 1 ? "Amanhã" : `${a.dias}d`}</Badge>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-1.5 min-w-0 flex-1">
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground font-medium">Faturamento</div>
+                <div className="text-sm font-bold truncate">{brl(faturadoMes)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground font-medium">Custos Totais</div>
+                <div className="text-sm font-bold text-destructive truncate">{brl(custosTotais)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground font-medium">Lucro</div>
+                <div className={`text-base font-black truncate ${lucroEstimado >= 0 ? "text-success" : "text-destructive"}`}>{brl(lucroEstimado)}</div>
+              </div>
+            </div>
+            <RingProgress value={Math.max(margemPct, 0)} color={lucroEstimado >= 0 ? "hsl(var(--success))" : "hsl(var(--destructive))"} />
+          </div>
+          <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[10px]">
+            <span className="text-muted-foreground uppercase font-bold tracking-wider">Ponto de equilíbrio</span>
+            <span className="font-bold">{brl(pontoEquilibrio)}</span>
+          </div>
         </Card>
       </div>
 
