@@ -33,23 +33,26 @@ export default function Dashboard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [invoices, setInvoices] = useState<{ data_faturamento: string; valor: number; client_id: string }[]>([]);
   const [clients, setClients] = useState<{ id: string; nome: string }[]>([]);
-  const [employees, setEmployees] = useState<{ id: string; nome: string; data_nascimento: string | null; cargo: string | null }[]>([]);
+  const [emps, setEmps] = useState<{ id: string; salario: number }[]>([]);
+  const [costs, setCosts] = useState<CostRow[]>([]);
   const [meta, setMeta] = useState<{ valor_meta: number; dias_uteis: number } | null>(null);
 
   const load = async () => {
     const monthStart = todayISO().slice(0, 7) + "-01";
-    const [rec, inv, g, cli, emp] = await Promise.all([
+    const [rec, inv, g, cli, emp, co] = await Promise.all([
       supabase.from("receivables").select("id, vencimento, valor, status, invoices(numero), clients(id, nome)").order("vencimento", { ascending: true }),
       supabase.from("invoices").select("data_faturamento, valor, client_id").gte("data_faturamento", monthStart),
       supabase.from("goals").select("valor_meta, dias_uteis").eq("mes", monthStart).maybeSingle(),
       supabase.from("clients").select("id, nome"),
-      supabase.from("employees").select("id, nome, data_nascimento, cargo").eq("status", "ativo"),
+      supabase.from("employees").select("id, salario").eq("status", "ativo"),
+      supabase.from("costs").select("*"),
     ]);
     setRows((rec.data as any) || []);
     setInvoices(inv.data || []);
     setMeta(g.data as any);
     setClients(cli.data || []);
-    setEmployees(emp.data || []);
+    setEmps((emp.data as any) || []);
+    setCosts((co.data as any) || []);
   };
   useEffect(() => { load(); }, []);
 
