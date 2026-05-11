@@ -53,6 +53,92 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_categories: {
+        Row: {
+          cor: string | null
+          created_at: string
+          id: string
+          nome: string
+          tipo_padrao: string
+          user_id: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          tipo_padrao?: string
+          user_id: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo_padrao?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      costs: {
+        Row: {
+          ativo: boolean
+          category_id: string | null
+          created_at: string
+          data_inicio: string
+          descricao: string
+          dia_vencimento: number | null
+          id: string
+          observacao: string | null
+          pago: boolean
+          parcelas_pagas: number
+          parcelas_total: number | null
+          tipo: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          category_id?: string | null
+          created_at?: string
+          data_inicio?: string
+          descricao: string
+          dia_vencimento?: number | null
+          id?: string
+          observacao?: string | null
+          pago?: boolean
+          parcelas_pagas?: number
+          parcelas_total?: number | null
+          tipo?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          category_id?: string | null
+          created_at?: string
+          data_inicio?: string
+          descricao?: string
+          dia_vencimento?: number | null
+          id?: string
+          observacao?: string | null
+          pago?: boolean
+          parcelas_pagas?: number
+          parcelas_total?: number | null
+          tipo?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "costs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "cost_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_payments: {
         Row: {
           created_at: string
