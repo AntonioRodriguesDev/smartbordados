@@ -334,6 +334,31 @@ export default function Dashboard() {
         <Card className="p-3 shadow-card">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-destructive/10 flex items-center justify-center text-destructive"><Wallet className="w-3 h-3" /></span>
+              <h3 className="font-semibold uppercase text-[10px] tracking-wider">Custos do Mês</h3>
+            </div>
+            <Link to="/custos" className="text-[10px] text-primary font-semibold hover:underline flex items-center gap-0.5">
+              Ver <ArrowRight className="w-2.5 h-2.5" />
+            </Link>
+          </div>
+          <ul className="space-y-1.5 text-xs">
+            <li className="flex justify-between"><span className="text-muted-foreground">Funcionários</span><span className="font-semibold">{brl(folha)}</span></li>
+            <li className="flex justify-between"><span className="text-muted-foreground">Custos Fixos</span><span className="font-semibold">{brl(custosLanc.fixo)}</span></li>
+            <li className="flex justify-between"><span className="text-muted-foreground">Parcelas</span><span className="font-semibold">{brl(custosLanc.parcelado)}</span></li>
+            <li className="flex justify-between"><span className="text-muted-foreground">Únicos</span><span className="font-semibold">{brl(custosLanc.unico)}</span></li>
+            <li className="flex justify-between pt-1.5 mt-1 border-t border-border/60 font-bold">
+              <span>Total</span><span className="text-destructive">{brl(custosTotais)}</span>
+            </li>
+            <li className="flex justify-between text-[10px] pt-1">
+              <span className="text-muted-foreground uppercase tracking-wider">Lucro estimado</span>
+              <span className={`font-bold ${lucroEstimado >= 0 ? "text-success" : "text-destructive"}`}>{brl(lucroEstimado)}</span>
+            </li>
+          </ul>
+        </Card>
+
+        <Card className="p-3 shadow-card">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Users className="w-3 h-3" /></span>
               <h3 className="font-semibold uppercase text-[10px] tracking-wider">Top Clientes</h3>
             </div>
