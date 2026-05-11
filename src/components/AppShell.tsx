@@ -1,14 +1,16 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, Target, LogOut, ListChecks, UserCog, DollarSign } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Target, LogOut, ListChecks, UserCog, DollarSign, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import BirthdayBanner from "@/components/BirthdayBanner";
 import logo from "@/assets/logo-smartbordados.png";
 
 const items = [
   { to: "/", label: "Visão Geral", icon: LayoutDashboard },
   { to: "/faturar", label: "Faturar", icon: FileText },
   { to: "/financeiro", label: "Financeiro", icon: DollarSign },
+  { to: "/custos", label: "Custos", icon: Wallet },
   { to: "/faturamentos", label: "Lançamentos", icon: ListChecks },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/funcionarios", label: "Funcionários", icon: UserCog },
@@ -52,9 +54,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <Button variant="ghost" size="icon" onClick={logout} className="text-muted-foreground"><LogOut className="w-4 h-4" /></Button>
       </header>
 
-      <main className="p-4 md:p-4 max-w-7xl mx-auto animate-fade-in-up">{children}</main>
+      <main className="p-4 md:p-4 max-w-7xl mx-auto animate-fade-in-up">
+        <BirthdayBanner />
+        {children}
+      </main>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border grid grid-cols-6 z-50">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border grid grid-cols-4 z-50 overflow-x-auto">
         {items.map(({ to, label, icon: Icon }) => {
           const active = loc.pathname === to;
           return (
