@@ -59,12 +59,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border grid grid-cols-4 z-50 overflow-x-auto">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border flex overflow-x-auto z-50 no-scrollbar">
         {items.map(({ to, label, icon: Icon }) => {
           const active = loc.pathname === to;
           return (
             <Link key={to} to={to} className={cn(
-              "flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium transition-colors",
+              "flex-1 min-w-[72px] flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium transition-colors",
               active ? "text-primary" : "text-muted-foreground"
             )}>
               <Icon className="w-5 h-5" />
