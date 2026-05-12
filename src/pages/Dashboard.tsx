@@ -77,8 +77,9 @@ export default function Dashboard() {
   const faturadoHoje = invoices.filter(i => i.data_faturamento === today).reduce((s, i) => s + Number(i.valor), 0);
 
   const now = new Date();
-  const totalDU = meta?.dias_uteis || businessDaysInMonth(now.getFullYear(), now.getMonth());
-  const duDecorridos = businessDaysInMonth(now.getFullYear(), now.getMonth(), now.getDate());
+  const holidaySet = new Set(holidays);
+  const totalDU = meta?.dias_uteis || businessDaysInMonth(now.getFullYear(), now.getMonth(), undefined, weekdays, holidaySet);
+  const duDecorridos = businessDaysInMonth(now.getFullYear(), now.getMonth(), now.getDate(), weekdays, holidaySet);
   const metaMes = Number(meta?.valor_meta || 0);
   const metaDiaria = totalDU > 0 ? metaMes / totalDU : 0;
   const esperadoAteHoje = metaDiaria * duDecorridos;
