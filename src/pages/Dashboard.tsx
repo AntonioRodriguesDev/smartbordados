@@ -80,8 +80,11 @@ export default function Dashboard() {
 
   const now = new Date();
   const totalDU = meta?.dias_uteis || businessDaysInMonth(now.getFullYear(), now.getMonth());
+  const duDecorridos = businessDaysInMonth(now.getFullYear(), now.getMonth(), now.getDate());
   const metaMes = Number(meta?.valor_meta || 0);
   const metaDiaria = totalDU > 0 ? metaMes / totalDU : 0;
+  const esperadoAteHoje = metaDiaria * duDecorridos;
+  const saldoAcumulado = faturadoMes - esperadoAteHoje;
   const faltaMeta = Math.max(metaDiaria - faturadoHoje, 0);
   const faltaMetaMes = Math.max(metaMes - faturadoMes, 0);
   const pctMes = metaMes > 0 ? Math.min((faturadoMes / metaMes) * 100, 100) : 0;
