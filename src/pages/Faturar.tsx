@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { computeReceivables } from "@/lib/receivables";
-import { todayISO, formatBRL } from "@/lib/format";
+import { todayISO, brl } from "@/lib/format";
 import { useNavigate } from "react-router-dom";
 import { parseNFePdf, normalizeCnpj } from "@/lib/nfeParser";
 import { Upload, FileCheck2, Loader2, AlertCircle, CheckCircle2, X } from "lucide-react";
