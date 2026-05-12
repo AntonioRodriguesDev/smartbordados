@@ -241,7 +241,7 @@ export default function Faturar() {
                           <div className="truncate font-medium">{b.fileName}</div>
                           <div className="text-xs text-muted-foreground truncate">
                             {b.status === "parsing" && "Lendo..."}
-                            {b.status === "ready" && `${b.clientName} • NF ${b.numero} • ${formatBRL(b.valor || 0)}`}
+                            {b.status === "ready" && `${b.clientName} • NF ${b.numero} • ${brl(b.valor || 0)}`}
                             {b.status === "saved" && `Importado: ${b.clientName} • NF ${b.numero}`}
                             {b.status === "error" && (b.error || "Erro")}
                           </div>
