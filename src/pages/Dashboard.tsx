@@ -80,8 +80,11 @@ export default function Dashboard() {
 
   const now = new Date();
   const totalDU = meta?.dias_uteis || businessDaysInMonth(now.getFullYear(), now.getMonth());
+  const duDecorridos = businessDaysInMonth(now.getFullYear(), now.getMonth(), now.getDate());
   const metaMes = Number(meta?.valor_meta || 0);
   const metaDiaria = totalDU > 0 ? metaMes / totalDU : 0;
+  const esperadoAteHoje = metaDiaria * duDecorridos;
+  const saldoAcumulado = faturadoMes - esperadoAteHoje;
   const faltaMeta = Math.max(metaDiaria - faturadoHoje, 0);
   const faltaMetaMes = Math.max(metaMes - faturadoMes, 0);
   const pctMes = metaMes > 0 ? Math.min((faturadoMes / metaMes) * 100, 100) : 0;
@@ -159,17 +162,23 @@ export default function Dashboard() {
               <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Total Faturado</div>
             </div>
             <div>
-              <div className="text-base font-bold tracking-tight truncate text-foreground/80">{brl(metaMes)}</div>
-              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Meta Mensal</div>
+              <div className="text-base font-bold tracking-tight truncate text-foreground/80">{brl(esperadoAteHoje)}</div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Esperado até Hoje ({duDecorridos}/{totalDU} d.u.)</div>
             </div>
           </div>
           <div className="flex items-center gap-2 mt-2.5 relative z-10">
             <Progress value={pctMes} color="bg-primary" className="h-1.5" />
             <span className="text-[10px] font-black text-primary w-8 text-right">{pctMes.toFixed(0)}%</span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1.5 font-medium relative z-10">
+          <p className="text-[10px] mt-1.5 font-medium relative z-10 flex items-center gap-1.5">
             {metaMes > 0 ? (
-              <>Faltam <span className="text-primary font-bold px-1 py-0.5 bg-primary/5 rounded">{brl(faltaMetaMes)}</span></>
+              <>
+                <span className="text-muted-foreground">Saldo:</span>
+                <span className={`font-bold px-1 py-0.5 rounded inline-flex items-center gap-1 ${saldoAcumulado >= 0 ? "text-success bg-success/10" : "text-destructive bg-destructive/10"}`}>
+                  {saldoAcumulado >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {saldoAcumulado >= 0 ? "+" : ""}{brl(saldoAcumulado)}
+                </span>
+              </>
             ) : (
               <Link to="/meta" className="text-primary underline hover:text-primary/80 transition-colors">Definir meta</Link>
             )}
