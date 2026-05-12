@@ -319,6 +319,30 @@ export type Database = {
         }
         Relationships: []
       }
+      holidays: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          descricao?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           client_id: string
@@ -428,6 +452,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      work_settings: {
+        Row: {
+          created_at: string
+          updated_at: string
+          user_id: string
+          weekdays: number[]
+        }
+        Insert: {
+          created_at?: string
+          updated_at?: string
+          user_id: string
+          weekdays?: number[]
+        }
+        Update: {
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+          weekdays?: number[]
+        }
+        Relationships: []
       }
     }
     Views: {

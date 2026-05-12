@@ -16,16 +16,8 @@ type Row = {
   clients: { id: string; nome: string } | null;
 };
 
-function businessDaysInMonth(year: number, month0: number, untilDay?: number) {
-  const last = new Date(year, month0 + 1, 0).getDate();
-  const stop = untilDay ?? last;
-  let count = 0;
-  for (let d = 1; d <= stop; d++) {
-    const wd = new Date(year, month0, d).getDay();
-    if (wd >= 1 && wd <= 5) count++;
-  }
-  return count;
-}
+import { businessDaysInMonth, DEFAULT_WEEKDAYS } from "@/lib/calendar";
+
 
 const MES_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -36,16 +28,20 @@ export default function Dashboard() {
   const [emps, setEmps] = useState<{ id: string; salario: number }[]>([]);
   const [costs, setCosts] = useState<CostRow[]>([]);
   const [meta, setMeta] = useState<{ valor_meta: number; dias_uteis: number } | null>(null);
+  const [weekdays, setWeekdays] = useState<number[]>(DEFAULT_WEEKDAYS);
+  const [holidays, setHolidays] = useState<string[]>([]);
 
   const load = async () => {
     const monthStart = todayISO().slice(0, 7) + "-01";
-    const [rec, inv, g, cli, emp, co] = await Promise.all([
+    const [rec, inv, g, cli, emp, co, ws, hol] = await Promise.all([
       supabase.from("receivables").select("id, vencimento, valor, status, invoices(numero), clients(id, nome)").order("vencimento", { ascending: true }),
       supabase.from("invoices").select("data_faturamento, valor, client_id").gte("data_faturamento", monthStart),
       supabase.from("goals").select("valor_meta, dias_uteis").eq("mes", monthStart).maybeSingle(),
       supabase.from("clients").select("id, nome"),
       supabase.from("employees").select("id, salario").eq("status", "ativo"),
       supabase.from("costs").select("*"),
+      supabase.from("work_settings").select("weekdays").maybeSingle(),
+      supabase.from("holidays").select("data"),
     ]);
     setRows((rec.data as any) || []);
     setInvoices(inv.data || []);
@@ -53,6 +49,8 @@ export default function Dashboard() {
     setClients(cli.data || []);
     setEmps((emp.data as any) || []);
     setCosts((co.data as any) || []);
+    if (ws.data?.weekdays) setWeekdays(ws.data.weekdays);
+    setHolidays(((hol.data as any) || []).map((h: any) => h.data));
   };
   useEffect(() => { load(); }, []);
 
@@ -79,8 +77,9 @@ export default function Dashboard() {
   const faturadoHoje = invoices.filter(i => i.data_faturamento === today).reduce((s, i) => s + Number(i.valor), 0);
 
   const now = new Date();
-  const totalDU = meta?.dias_uteis || businessDaysInMonth(now.getFullYear(), now.getMonth());
-  const duDecorridos = businessDaysInMonth(now.getFullYear(), now.getMonth(), now.getDate());
+  const holidaySet = new Set(holidays);
+  const totalDU = meta?.dias_uteis || businessDaysInMonth(now.getFullYear(), now.getMonth(), undefined, weekdays, holidaySet);
+  const duDecorridos = businessDaysInMonth(now.getFullYear(), now.getMonth(), now.getDate(), weekdays, holidaySet);
   const metaMes = Number(meta?.valor_meta || 0);
   const metaDiaria = totalDU > 0 ? metaMes / totalDU : 0;
   const esperadoAteHoje = metaDiaria * duDecorridos;
