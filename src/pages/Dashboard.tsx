@@ -16,16 +16,8 @@ type Row = {
   clients: { id: string; nome: string } | null;
 };
 
-function businessDaysInMonth(year: number, month0: number, untilDay?: number) {
-  const last = new Date(year, month0 + 1, 0).getDate();
-  const stop = untilDay ?? last;
-  let count = 0;
-  for (let d = 1; d <= stop; d++) {
-    const wd = new Date(year, month0, d).getDay();
-    if (wd >= 1 && wd <= 5) count++;
-  }
-  return count;
-}
+import { businessDaysInMonth, DEFAULT_WEEKDAYS } from "@/lib/calendar";
+
 
 const MES_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
