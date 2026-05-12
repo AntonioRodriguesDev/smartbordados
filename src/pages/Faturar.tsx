@@ -7,10 +7,22 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { computeReceivables } from "@/lib/receivables";
-import { todayISO } from "@/lib/format";
+import { todayISO, formatBRL } from "@/lib/format";
 import { useNavigate } from "react-router-dom";
 import { parseNFePdf, normalizeCnpj } from "@/lib/nfeParser";
-import { Upload, FileCheck2, Loader2 } from "lucide-react";
+import { Upload, FileCheck2, Loader2, AlertCircle, CheckCircle2, X } from "lucide-react";
+
+type BatchItem = {
+  fileName: string;
+  status: "parsing" | "ready" | "error" | "saved";
+  numero?: string;
+  valor?: number;
+  data?: string;
+  cnpj?: string;
+  clientId?: string;
+  clientName?: string;
+  error?: string;
+};
 
 export default function Faturar() {
   const nav = useNavigate();
@@ -23,6 +35,9 @@ export default function Faturar() {
   const [parsing, setParsing] = useState(false);
   const [pdfInfo, setPdfInfo] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const batchRef = useRef<HTMLInputElement>(null);
+  const [batch, setBatch] = useState<BatchItem[]>([]);
+  const [savingBatch, setSavingBatch] = useState(false);
 
   useEffect(() => {
     supabase.from("clients").select("*").order("nome").then(({ data }) => setClients(data || []));
@@ -56,6 +71,82 @@ export default function Faturar() {
     }
   };
 
+  const handleBatch = async (files: FileList) => {
+    const initial: BatchItem[] = Array.from(files).map(f => ({ fileName: f.name, status: "parsing" }));
+    setBatch(initial);
+
+    const results: BatchItem[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const nfe = await parseNFePdf(file);
+        const matched = nfe.cnpjDestinatario
+          ? clients.find(c => normalizeCnpj(c.cnpj) === normalizeCnpj(nfe.cnpjDestinatario))
+          : null;
+        results.push({
+          fileName: file.name,
+          status: matched && nfe.valor != null && nfe.numero ? "ready" : "error",
+          numero: nfe.numero,
+          valor: nfe.valor,
+          data: nfe.dataEmissao || todayISO(),
+          cnpj: nfe.cnpjDestinatario,
+          clientId: matched?.id,
+          clientName: matched?.nome,
+          error: !matched
+            ? (nfe.cnpjDestinatario ? `CNPJ ${nfe.cnpjDestinatario} não cadastrado` : "CNPJ não encontrado no PDF")
+            : !nfe.numero ? "Número não encontrado"
+            : nfe.valor == null ? "Valor não encontrado"
+            : undefined,
+        });
+      } catch (err: any) {
+        results.push({ fileName: file.name, status: "error", error: err.message || "Falha ao ler PDF" });
+      }
+      setBatch([...results, ...initial.slice(results.length)]);
+    }
+    if (batchRef.current) batchRef.current.value = "";
+  };
+
+  const saveBatch = async () => {
+    const ready = batch.filter(b => b.status === "ready");
+    if (ready.length === 0) return toast.error("Nenhum PDF pronto para importar");
+    setSavingBatch(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sem sessão");
+
+      const updated = [...batch];
+      let ok = 0;
+      for (let i = 0; i < updated.length; i++) {
+        const item = updated[i];
+        if (item.status !== "ready") continue;
+        try {
+          const client = clients.find(c => c.id === item.clientId);
+          const { data: inv, error } = await supabase.from("invoices").insert({
+            user_id: user.id, client_id: item.clientId!, numero: item.numero!,
+            valor: item.valor!, data_faturamento: item.data!,
+          }).select().single();
+          if (error) throw error;
+          const recvs = computeReceivables(client, item.data!, item.valor!);
+          const { error: rErr } = await supabase.from("receivables").insert(
+            recvs.map(r => ({ ...r, user_id: user.id, invoice_id: inv.id, client_id: item.clientId! }))
+          );
+          if (rErr) throw rErr;
+          updated[i] = { ...item, status: "saved" };
+          ok++;
+          setBatch([...updated]);
+        } catch (err: any) {
+          updated[i] = { ...item, status: "error", error: err.message };
+          setBatch([...updated]);
+        }
+      }
+      toast.success(`${ok} faturamento(s) importado(s)`);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSavingBatch(false);
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId) return toast.error("Selecione um cliente");
@@ -80,7 +171,7 @@ export default function Faturar() {
       toast.success("Faturamento salvo!");
       setNumero(""); setValor(""); setClientId(""); setPdfInfo(null);
       if (fileRef.current) fileRef.current.value = "";
-      nav("/");
+      // Permanece na tela para novos lançamentos
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -88,11 +179,16 @@ export default function Faturar() {
     }
   };
 
+  const readyCount = batch.filter(b => b.status === "ready").length;
+
   return (
-    <div className="space-y-6 max-w-xl mx-auto">
-      <header>
-        <h1 className="text-3xl font-bold">Novo Faturamento</h1>
-        <p className="text-muted-foreground text-sm">Importe o PDF da NF-e ou preencha manualmente.</p>
+    <div className="space-y-6 max-w-3xl mx-auto">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Novo Faturamento</h1>
+          <p className="text-muted-foreground text-sm">Importe um ou vários PDFs da NF-e ou preencha manualmente.</p>
+        </div>
+        <Button variant="outline" onClick={() => nav("/")}>Voltar ao Painel</Button>
       </header>
 
       {clients.length === 0 ? (
@@ -102,19 +198,80 @@ export default function Faturar() {
         </Card>
       ) : (
         <>
+          {/* Batch import */}
           <Card className="p-5 shadow-card border-dashed border-2 border-primary/30">
             <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
-              <Upload className="w-4 h-4 text-primary" /> Importar PDF da NF-e
+              <Upload className="w-4 h-4 text-primary" /> Importação em lote (vários PDFs)
             </Label>
             <p className="text-xs text-muted-foreground mb-3">
-              Extraímos automaticamente o número, valor e identificamos o cliente pelo CNPJ.
+              Selecione vários arquivos. Cada PDF cujo CNPJ esteja cadastrado será importado automaticamente.
             </p>
+            <input
+              ref={batchRef}
+              type="file"
+              accept="application/pdf"
+              multiple
+              onChange={e => e.target.files?.length && handleBatch(e.target.files)}
+              className="block w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground file:cursor-pointer hover:file:opacity-90"
+            />
+
+            {batch.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {batch.length} arquivo(s) — {readyCount} pronto(s) para importar
+                  </span>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => setBatch([])}>Limpar</Button>
+                    <Button size="sm" onClick={saveBatch} disabled={savingBatch || readyCount === 0}>
+                      {savingBatch ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      Importar {readyCount > 0 ? `(${readyCount})` : ""}
+                    </Button>
+                  </div>
+                </div>
+                <div className="divide-y rounded-md border">
+                  {batch.map((b, i) => (
+                    <div key={i} className="flex items-center justify-between gap-3 p-2 text-sm">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {b.status === "parsing" && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />}
+                        {b.status === "ready" && <FileCheck2 className="w-4 h-4 text-primary shrink-0" />}
+                        {b.status === "saved" && <CheckCircle2 className="w-4 h-4 text-success shrink-0" />}
+                        {b.status === "error" && <AlertCircle className="w-4 h-4 text-destructive shrink-0" />}
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{b.fileName}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {b.status === "parsing" && "Lendo..."}
+                            {b.status === "ready" && `${b.clientName} • NF ${b.numero} • ${formatBRL(b.valor || 0)}`}
+                            {b.status === "saved" && `Importado: ${b.clientName} • NF ${b.numero}`}
+                            {b.status === "error" && (b.error || "Erro")}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setBatch(batch.filter((_, j) => j !== i))}
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label="remover"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* Single PDF + manual */}
+          <Card className="p-5 shadow-card border-dashed border-2 border-primary/20">
+            <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
+              <Upload className="w-4 h-4 text-primary" /> Importar um único PDF (preenche o formulário)
+            </Label>
             <input
               ref={fileRef}
               type="file"
               accept="application/pdf"
               onChange={e => e.target.files?.[0] && handlePdf(e.target.files[0])}
-              className="block w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground file:cursor-pointer hover:file:opacity-90"
+              className="block w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-secondary file:text-secondary-foreground file:cursor-pointer hover:file:opacity-90"
               disabled={parsing}
             />
             {parsing && (
