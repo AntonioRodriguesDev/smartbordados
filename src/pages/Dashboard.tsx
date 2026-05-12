@@ -28,16 +28,20 @@ export default function Dashboard() {
   const [emps, setEmps] = useState<{ id: string; salario: number }[]>([]);
   const [costs, setCosts] = useState<CostRow[]>([]);
   const [meta, setMeta] = useState<{ valor_meta: number; dias_uteis: number } | null>(null);
+  const [weekdays, setWeekdays] = useState<number[]>(DEFAULT_WEEKDAYS);
+  const [holidays, setHolidays] = useState<string[]>([]);
 
   const load = async () => {
     const monthStart = todayISO().slice(0, 7) + "-01";
-    const [rec, inv, g, cli, emp, co] = await Promise.all([
+    const [rec, inv, g, cli, emp, co, ws, hol] = await Promise.all([
       supabase.from("receivables").select("id, vencimento, valor, status, invoices(numero), clients(id, nome)").order("vencimento", { ascending: true }),
       supabase.from("invoices").select("data_faturamento, valor, client_id").gte("data_faturamento", monthStart),
       supabase.from("goals").select("valor_meta, dias_uteis").eq("mes", monthStart).maybeSingle(),
       supabase.from("clients").select("id, nome"),
       supabase.from("employees").select("id, salario").eq("status", "ativo"),
       supabase.from("costs").select("*"),
+      supabase.from("work_settings").select("weekdays").maybeSingle(),
+      supabase.from("holidays").select("data"),
     ]);
     setRows((rec.data as any) || []);
     setInvoices(inv.data || []);
@@ -45,6 +49,8 @@ export default function Dashboard() {
     setClients(cli.data || []);
     setEmps((emp.data as any) || []);
     setCosts((co.data as any) || []);
+    if (ws.data?.weekdays) setWeekdays(ws.data.weekdays);
+    setHolidays(((hol.data as any) || []).map((h: any) => h.data));
   };
   useEffect(() => { load(); }, []);
 
