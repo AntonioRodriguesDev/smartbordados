@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, fmtDate, todayISO } from "@/lib/format";
-import { DollarSign, Search, Check, AlertCircle, Clock, Filter, ArrowLeft, RotateCcw } from "lucide-react";
+import { DollarSign, Search, Check, AlertCircle, Clock, Filter, ArrowLeft, RotateCcw, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -15,6 +15,14 @@ export default function Financeiro() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusTab, setStatusTab] = useState("all");
+
+  const now = new Date();
+  const firstDay = todayISO().slice(0, 8) + "01";
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const lastDay = todayISO().slice(0, 8) + String(lastDayOfMonth).padStart(2, "0");
+
+  const [startDate, setStartDate] = useState(firstDay);
+  const [endDate, setEndDate] = useState(lastDay);
 
   const load = async () => {
     setLoading(true);
@@ -61,35 +69,72 @@ export default function Financeiro() {
   const filtered = rows.filter(r => {
     const matchesSearch = !search || r.clients?.nome?.toLowerCase().includes(search.toLowerCase()) || r.invoices?.numero?.includes(search);
     const matchesStatus = statusTab === "all" || r.status === statusTab;
-    return matchesSearch && matchesStatus;
+
+    // Period filter logic
+    let matchesPeriod = true;
+    if (r.status === "pago") {
+      // For paid items, we care about when it was paid
+      matchesPeriod = r.pago_em ? (r.pago_em >= startDate && r.pago_em <= endDate) : (r.vencimento >= startDate && r.vencimento <= endDate);
+    } else {
+      // For pending/delayed, we care about due date <= endDate (include everything up to end of period)
+      // but also potentially >= startDate? User said "atrasos podem trazer do mês anterior".
+      // If we want to see what is "to be received" in this period, we include everything due until endDate.
+      matchesPeriod = r.vencimento <= endDate;
+      
+      // If we are looking for a specific historical period, we might want to see what was due then.
+      // But usually, current dashboard needs everything overdue.
+      // Let's stick to vencimento <= endDate for pending.
+    }
+
+    return matchesSearch && matchesStatus && matchesPeriod;
   });
 
-  const totalPago = rows.filter(r => r.status === "pago").reduce((s, r) => s + Number(r.valor), 0);
-  const totalPendente = rows.filter(r => r.status === "pendente").reduce((s, r) => s + Number(r.valor), 0);
-  const totalAtrasado = rows.filter(r => r.status === "atrasado").reduce((s, r) => s + Number(r.valor), 0);
+  const totalPago = filtered.filter(r => r.status === "pago").reduce((s, r) => s + Number(r.valor), 0);
+  const totalPendente = filtered.filter(r => r.status === "pendente").reduce((s, r) => s + Number(r.valor), 0);
+  const totalAtrasado = filtered.filter(r => r.status === "atrasado").reduce((s, r) => s + Number(r.valor), 0);
 
   return (
     <div className="space-y-4 animate-fade-in-up pb-10">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link to="/" className="p-1 hover:bg-secondary rounded-full transition-colors"><ArrowLeft className="w-4 h-4" /></Link>
+            <Link to="/" className="p-1 hover:bg-secondary rounded-full transition-colors print:hidden"><ArrowLeft className="w-4 h-4" /></Link>
             <h1 className="text-2xl font-bold tracking-tight">Monitoramento Financeiro</h1>
           </div>
           <p className="text-muted-foreground text-sm">Controle total de recebimentos e fluxo de caixa</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <div className="flex items-center gap-2 bg-card border rounded-lg px-2 py-1 glass">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground whitespace-nowrap">Período:</span>
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={e => setStartDate(e.target.value)} 
+              className="bg-transparent border-none text-xs font-medium focus:ring-0 p-0 w-28"
+            />
+            <span className="text-muted-foreground">—</span>
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={e => setEndDate(e.target.value)} 
+              className="bg-transparent border-none text-xs font-medium focus:ring-0 p-0 w-28"
+            />
+          </div>
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
               placeholder="Buscar cliente ou NF..." 
               value={search} 
               onChange={e => setSearch(e.target.value)}
-              className="pl-9 w-full md:w-64 glass"
+              className="pl-9 w-full md:w-48 glass h-9 text-xs"
             />
           </div>
-          <Button variant="outline" size="icon" className="glass"><Filter className="w-4 h-4" /></Button>
+          <Button variant="outline" size="sm" className="glass h-9 gap-2" onClick={() => window.print()}>
+            <Printer className="w-4 h-4" />
+            <span className="hidden sm:inline">Exportar PDF</span>
+          </Button>
         </div>
       </header>
 
@@ -118,9 +163,9 @@ export default function Financeiro() {
         </Card>
       </div>
 
-      <Card className="glass shadow-card overflow-hidden">
+      <Card className="glass shadow-card overflow-hidden print:shadow-none print:border-none">
         <Tabs defaultValue="all" value={statusTab} onValueChange={setStatusTab} className="w-full">
-          <div className="px-4 pt-4 border-b border-border/40">
+          <div className="px-4 pt-4 border-b border-border/40 print:hidden">
             <TabsList className="bg-secondary/50 mb-4">
               <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
               <TabsTrigger value="pendente" className="text-xs">A Vencer</TabsTrigger>
@@ -139,7 +184,7 @@ export default function Financeiro() {
                   <th className="text-left font-bold py-4 px-4">Vencimento</th>
                   <th className="text-right font-bold py-4 px-4">Valor</th>
                   <th className="text-center font-bold py-4 px-4">Status</th>
-                  <th className="text-right font-bold py-4 px-4">Ações</th>
+                  <th className="text-right font-bold py-4 px-4 print:hidden">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
@@ -164,7 +209,7 @@ export default function Financeiro() {
                           <Badge className="bg-warning/10 text-warning border-warning/20 hover:bg-warning/15 px-2">A Vencer</Badge>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-4 text-right print:hidden">
                         {r.status !== "pago" ? (
                           <Button 
                             size="sm" 

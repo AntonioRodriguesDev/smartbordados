@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 type Row = {
-  id: string; vencimento: string; valor: number; status: string;
+  id: string; vencimento: string; valor: number; status: string; pago_em: string | null;
   invoices: { numero: string } | null;
   clients: { id: string; nome: string } | null;
 };
@@ -34,7 +34,7 @@ export default function Dashboard() {
   const load = async () => {
     const monthStart = todayISO().slice(0, 7) + "-01";
     const [rec, inv, g, cli, emp, co, ws, hol] = await Promise.all([
-      supabase.from("receivables").select("id, vencimento, valor, status, invoices(numero), clients(id, nome)").order("vencimento", { ascending: true }),
+      supabase.from("receivables").select("id, vencimento, valor, status, pago_em, invoices(numero), clients(id, nome)").order("vencimento", { ascending: true }),
       supabase.from("invoices").select("data_faturamento, valor, client_id").gte("data_faturamento", monthStart),
       supabase.from("goals").select("valor_meta, dias_uteis").eq("mes", monthStart).maybeSingle(),
       supabase.from("clients").select("id, nome"),
@@ -65,10 +65,13 @@ export default function Dashboard() {
   const today = todayISO();
   const in7 = new Date(); in7.setDate(in7.getDate() + 7);
   const in7iso = in7.toISOString().slice(0, 10);
-  const monthStart = today.slice(0, 7) + "-01";
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const endOfMonth = today.slice(0, 8) + String(lastDay).padStart(2, "0");
 
-  const totalReceber = rows.filter(r => r.status !== "pago").reduce((s, r) => s + Number(r.valor), 0);
-  const recebidoMes = rows.filter(r => r.status === "pago" && r.vencimento >= monthStart).reduce((s, r) => s + Number(r.valor), 0);
+  const totalReceber = rows.filter(r => r.status !== "pago" && r.vencimento <= endOfMonth).reduce((s, r) => s + Number(r.valor), 0);
+  const monthStart = today.slice(0, 7) + "-01";
+  const recebidoMes = rows.filter(r => r.status === "pago" && r.pago_em && r.pago_em >= monthStart && r.pago_em <= endOfMonth).reduce((s, r) => s + Number(r.valor), 0);
   const aVencer7 = rows.filter(r => r.status === "pendente" && r.vencimento >= today && r.vencimento <= in7iso);
   const atrasados = rows.filter(r => r.status !== "pago" && r.vencimento < today);
   const totalAtrasado = atrasados.reduce((s, r) => s + Number(r.valor), 0);
@@ -76,7 +79,6 @@ export default function Dashboard() {
   const faturadoMes = invoices.reduce((s, i) => s + Number(i.valor), 0);
   const faturadoHoje = invoices.filter(i => i.data_faturamento === today).reduce((s, i) => s + Number(i.valor), 0);
 
-  const now = new Date();
   const holidaySet = new Set(holidays);
   const totalDU = meta?.dias_uteis || businessDaysInMonth(now.getFullYear(), now.getMonth(), undefined, weekdays, holidaySet);
   const duDecorridos = businessDaysInMonth(now.getFullYear(), now.getMonth(), now.getDate(), weekdays, holidaySet);
@@ -91,7 +93,6 @@ export default function Dashboard() {
 
   const dailyMap = new Map<string, number>();
   invoices.forEach(i => dailyMap.set(i.data_faturamento, (dailyMap.get(i.data_faturamento) || 0) + Number(i.valor)));
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const chartData = Array.from({ length: lastDay }, (_, i) => {
     const day = String(i + 1).padStart(2, "0");
     const iso = `${monthStart.slice(0, 8)}${day}`;

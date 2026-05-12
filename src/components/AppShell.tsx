@@ -23,8 +23,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const logout = async () => { await supabase.auth.signOut(); nav("/auth"); };
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-52">
-      <aside className="hidden md:flex fixed inset-y-0 left-0 w-52 glass-sidebar flex-col p-4 z-50">
+    <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-52 print:pl-0 print:pb-0 print:bg-white">
+      <aside className="hidden md:flex fixed inset-y-0 left-0 w-52 glass-sidebar flex-col p-4 z-50 print:hidden">
         <div className="px-2 py-4 mb-4 flex items-center justify-center">
           <img src={logo} alt="Smart Bordados" className="w-full max-w-[160px] object-contain drop-shadow-sm rounded-xl" />
         </div>
@@ -49,17 +49,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile top bar with logo */}
-      <header className="md:hidden sticky top-0 z-40 bg-sidebar text-sidebar-foreground px-4 py-2 flex items-center justify-between">
+      <header className="md:hidden sticky top-0 z-40 bg-sidebar text-sidebar-foreground px-4 py-2 flex items-center justify-between print:hidden">
         <img src={logo} alt="Smart Bordados" className="h-10 object-contain rounded-lg" />
         <Button variant="ghost" size="icon" onClick={logout} className="text-sidebar-foreground/70 hover:text-destructive"><LogOut className="w-4 h-4" /></Button>
       </header>
 
-      <main className="p-4 md:p-4 max-w-[1600px] mx-auto animate-fade-in-up">
-        <BirthdayBanner />
+      <main className="p-4 md:p-4 max-w-[1600px] mx-auto animate-fade-in-up print:p-0 print:max-w-none">
+        <div className="print:hidden"><BirthdayBanner /></div>
         {children}
       </main>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border flex overflow-x-auto z-50 no-scrollbar">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border flex overflow-x-auto z-50 no-scrollbar print:hidden">
         {items.map(({ to, label, icon: Icon }) => {
           const active = loc.pathname === to;
           return (
