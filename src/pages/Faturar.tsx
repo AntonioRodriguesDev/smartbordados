@@ -97,19 +97,23 @@ export default function Faturar() {
         const matched = nfe.cnpjDestinatario
           ? clients.find(c => normalizeCnpj(c.cnpj) === normalizeCnpj(nfe.cnpjDestinatario))
           : null;
+        const faltaRetorno = !!nfe.temCfop5902;
         results.push({
           fileName: file.name,
-          status: matched && nfe.valor != null && nfe.numero ? "ready" : "error",
+          status: matched && nfe.valor != null && nfe.numero && !faltaRetorno ? "ready" : "error",
           numero: nfe.numero,
           valor: nfe.valor,
           data: nfe.dataEmissao || todayISO(),
           cnpj: nfe.cnpjDestinatario,
           clientId: matched?.id,
           clientName: matched?.nome,
+          temCfop5902: nfe.temCfop5902,
+          notaRetorno: "",
           error: !matched
             ? (nfe.cnpjDestinatario ? `CNPJ ${nfe.cnpjDestinatario} não cadastrado` : "CNPJ não encontrado no PDF")
             : !nfe.numero ? "Número não encontrado"
             : nfe.valor == null ? "Valor não encontrado"
+            : faltaRetorno ? "CFOP 5902 — informe a nota de retorno"
             : undefined,
         });
       } catch (err: any) {
