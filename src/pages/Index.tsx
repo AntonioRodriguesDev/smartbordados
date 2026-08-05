@@ -11,6 +11,7 @@ import Meta from "./Meta";
 import Funcionarios from "./Funcionarios";
 import Financeiro from "./Financeiro";
 import Custos from "./Custos";
+import Precos from "./Precos";
 import { supabase } from "@/integrations/supabase/client";
 import { todayISO } from "@/lib/format";
 
