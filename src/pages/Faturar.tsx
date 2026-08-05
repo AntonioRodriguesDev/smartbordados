@@ -292,6 +292,17 @@ export default function Faturar() {
                           </div>
                         </div>
                       </div>
+                      {b.status !== "parsing" && b.status !== "saved" && (
+                        <Input
+                          value={b.notaRetorno || ""}
+                          onChange={e => setItemRetorno(i, e.target.value)}
+                          placeholder={b.temCfop5902 ? "Nota retorno *" : "Nota retorno"}
+                          className={`h-8 w-32 text-xs ${b.temCfop5902 && !(b.notaRetorno || "").trim() ? "border-destructive" : ""}`}
+                        />
+                      )}
+                      {b.status === "saved" && b.notaRetorno && (
+                        <span className="text-xs text-muted-foreground">Ret. {b.notaRetorno}</span>
+                      )}
                       <button
                         onClick={() => setBatch(batch.filter((_, j) => j !== i))}
                         className="text-muted-foreground hover:text-foreground"
