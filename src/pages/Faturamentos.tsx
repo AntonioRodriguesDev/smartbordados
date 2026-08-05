@@ -74,7 +74,8 @@ export default function Faturamentos() {
 
   const filtered = invoices.filter(i => {
     const q = search.toLowerCase();
-    return !q || i.numero?.toLowerCase().includes(q) || i.clients?.nome?.toLowerCase().includes(q);
+    return !q || i.numero?.toLowerCase().includes(q) || i.clients?.nome?.toLowerCase().includes(q)
+      || String(i.nota_retorno || "").toLowerCase().includes(q);
   });
 
   return (
@@ -85,7 +86,7 @@ export default function Faturamentos() {
       </header>
 
       <Card className="p-4 shadow-card">
-        <Input placeholder="Buscar nota ou cliente..." value={search} onChange={e => setSearch(e.target.value)} className="mb-3 max-w-xs" />
+        <Input placeholder="Buscar nota, cliente ou nota de retorno..." value={search} onChange={e => setSearch(e.target.value)} className="mb-3 max-w-xs" />
         {filtered.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum faturamento.</p>
         ) : (
@@ -94,7 +95,10 @@ export default function Faturamentos() {
               <div key={i.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
                 <div className="min-w-0">
                   <div className="font-medium truncate">{i.clients?.nome}</div>
-                  <div className="text-xs text-muted-foreground">NF {i.numero} · {fmtDate(i.data_faturamento)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    NF {i.numero} · {fmtDate(i.data_faturamento)}
+                    {i.nota_retorno ? <> · <span className="text-primary font-medium">Retorno {i.nota_retorno}</span></> : null}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{brl(Number(i.valor))}</span>
