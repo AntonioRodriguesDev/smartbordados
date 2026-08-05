@@ -129,6 +129,7 @@ export default function Faturamentos() {
               <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} required /></div>
               <div><Label>Data</Label><Input type="date" value={form.data_faturamento} onChange={e => setForm({ ...form, data_faturamento: e.target.value })} required /></div>
             </div>
+            <div><Label>Nota de retorno</Label><Input value={form.nota_retorno} onChange={e => setForm({ ...form, nota_retorno: e.target.value })} placeholder="Opcional (obrigatório em CFOP 5902)" /></div>
             <Button type="submit" size="lg" className="w-full">Salvar</Button>
           </form>
         </DialogContent>
