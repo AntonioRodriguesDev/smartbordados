@@ -21,6 +21,8 @@ type BatchItem = {
   cnpj?: string;
   clientId?: string;
   clientName?: string;
+  temCfop5902?: boolean;
+  notaRetorno?: string;
   error?: string;
 };
 
@@ -31,6 +33,8 @@ export default function Faturar() {
   const [numero, setNumero] = useState("");
   const [valor, setValor] = useState("");
   const [data, setData] = useState(todayISO());
+  const [notaRetorno, setNotaRetorno] = useState("");
+  const [exigeRetorno, setExigeRetorno] = useState(false);
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [pdfInfo, setPdfInfo] = useState<string | null>(null);
@@ -38,10 +42,18 @@ export default function Faturar() {
   const batchRef = useRef<HTMLInputElement>(null);
   const [batch, setBatch] = useState<BatchItem[]>([]);
   const [savingBatch, setSavingBatch] = useState(false);
+  const [usedRetornos, setUsedRetornos] = useState<Set<string>>(new Set());
+
+  const loadRetornos = async () => {
+    const { data } = await supabase.from("invoices").select("nota_retorno").not("nota_retorno", "is", null);
+    setUsedRetornos(new Set(((data as any[]) || []).map(r => String(r.nota_retorno).trim()).filter(Boolean)));
+  };
 
   useEffect(() => {
     supabase.from("clients").select("*").order("nome").then(({ data }) => setClients(data || []));
+    loadRetornos();
   }, []);
+
 
   const handlePdf = async (file: File) => {
     setParsing(true);
@@ -55,13 +67,15 @@ export default function Faturar() {
       if (nfe.numero) setNumero(nfe.numero);
       if (nfe.valor != null) setValor(String(nfe.valor.toFixed(2)));
       if (nfe.dataEmissao) setData(nfe.dataEmissao);
+      setExigeRetorno(!!nfe.temCfop5902);
+      const cfopMsg = nfe.temCfop5902 ? " • CFOP 5902 detectado: informe a nota de retorno." : "";
       if (matched) {
         setClientId(matched.id);
-        setPdfInfo(`✓ Cliente identificado: ${matched.nome} (CNPJ ${nfe.cnpjDestinatario})`);
+        setPdfInfo(`✓ Cliente identificado: ${matched.nome} (CNPJ ${nfe.cnpjDestinatario})${cfopMsg}`);
       } else if (nfe.cnpjDestinatario) {
-        setPdfInfo(`⚠ CNPJ ${nfe.cnpjDestinatario} não encontrado no cadastro. Selecione o cliente manualmente.`);
+        setPdfInfo(`⚠ CNPJ ${nfe.cnpjDestinatario} não encontrado no cadastro. Selecione o cliente manualmente.${cfopMsg}`);
       } else {
-        setPdfInfo("⚠ Não foi possível extrair o CNPJ. Preencha manualmente.");
+        setPdfInfo(`⚠ Não foi possível extrair o CNPJ. Preencha manualmente.${cfopMsg}`);
       }
       toast.success("Dados extraídos da nota");
     } catch (err: any) {
@@ -83,19 +97,23 @@ export default function Faturar() {
         const matched = nfe.cnpjDestinatario
           ? clients.find(c => normalizeCnpj(c.cnpj) === normalizeCnpj(nfe.cnpjDestinatario))
           : null;
+        const faltaRetorno = !!nfe.temCfop5902;
         results.push({
           fileName: file.name,
-          status: matched && nfe.valor != null && nfe.numero ? "ready" : "error",
+          status: matched && nfe.valor != null && nfe.numero && !faltaRetorno ? "ready" : "error",
           numero: nfe.numero,
           valor: nfe.valor,
           data: nfe.dataEmissao || todayISO(),
           cnpj: nfe.cnpjDestinatario,
           clientId: matched?.id,
           clientName: matched?.nome,
+          temCfop5902: nfe.temCfop5902,
+          notaRetorno: "",
           error: !matched
             ? (nfe.cnpjDestinatario ? `CNPJ ${nfe.cnpjDestinatario} não cadastrado` : "CNPJ não encontrado no PDF")
             : !nfe.numero ? "Número não encontrado"
             : nfe.valor == null ? "Valor não encontrado"
+            : faltaRetorno ? "CFOP 5902 — informe a nota de retorno"
             : undefined,
         });
       } catch (err: any) {
@@ -104,6 +122,21 @@ export default function Faturar() {
       setBatch([...results, ...initial.slice(results.length)]);
     }
     if (batchRef.current) batchRef.current.value = "";
+  };
+
+  const setItemRetorno = (idx: number, value: string) => {
+    setBatch(prev => prev.map((b, i) => {
+      if (i !== idx) return b;
+      const nr = value.trim();
+      const dup = nr && usedRetornos.has(nr);
+      const base = { ...b, notaRetorno: value };
+      if (b.status === "saved") return base;
+      if (dup) return { ...base, status: "error", error: `Nota de retorno ${nr} já utilizada` };
+      const okBase = !!b.clientId && b.valor != null && !!b.numero;
+      if (!okBase) return base;
+      if (b.temCfop5902 && !nr) return { ...base, status: "error", error: "CFOP 5902 — informe a nota de retorno" };
+      return { ...base, status: "ready", error: undefined };
+    }));
   };
 
   const saveBatch = async () => {
@@ -115,15 +148,18 @@ export default function Faturar() {
       if (!user) throw new Error("Sem sessão");
 
       const updated = [...batch];
+      const seen = new Set(usedRetornos);
       let ok = 0;
       for (let i = 0; i < updated.length; i++) {
         const item = updated[i];
         if (item.status !== "ready") continue;
         try {
+          const nr = (item.notaRetorno || "").trim();
+          if (nr && seen.has(nr)) throw new Error(`Nota de retorno ${nr} já utilizada`);
           const client = clients.find(c => c.id === item.clientId);
           const { data: inv, error } = await supabase.from("invoices").insert({
             user_id: user.id, client_id: item.clientId!, numero: item.numero!,
-            valor: item.valor!, data_faturamento: item.data!,
+            valor: item.valor!, data_faturamento: item.data!, nota_retorno: nr || null,
           }).select().single();
           if (error) throw error;
           const recvs = computeReceivables(client, item.data!, item.valor!);
@@ -131,6 +167,7 @@ export default function Faturar() {
             recvs.map(r => ({ ...r, user_id: user.id, invoice_id: inv.id, client_id: item.clientId! }))
           );
           if (rErr) throw rErr;
+          if (nr) seen.add(nr);
           updated[i] = { ...item, status: "saved" };
           ok++;
           setBatch([...updated]);
@@ -139,6 +176,7 @@ export default function Faturar() {
           setBatch([...updated]);
         }
       }
+      setUsedRetornos(seen);
       toast.success(`${ok} faturamento(s) importado(s)`);
     } catch (err: any) {
       toast.error(err.message);
@@ -150,6 +188,9 @@ export default function Faturar() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId) return toast.error("Selecione um cliente");
+    const nr = notaRetorno.trim();
+    if (exigeRetorno && !nr) return toast.error("CFOP 5902: informe a nota de retorno");
+    if (nr && usedRetornos.has(nr)) return toast.error(`Nota de retorno ${nr} já utilizada`);
     setLoading(true);
     try {
       const client = clients.find(c => c.id === clientId);
@@ -159,6 +200,7 @@ export default function Faturar() {
       const valorNum = parseFloat(valor.replace(",", "."));
       const { data: inv, error } = await supabase.from("invoices").insert({
         user_id: user.id, client_id: clientId, numero, valor: valorNum, data_faturamento: data,
+        nota_retorno: nr || null,
       }).select().single();
       if (error) throw error;
 
@@ -168,8 +210,10 @@ export default function Faturar() {
       );
       if (rErr) throw rErr;
 
+      if (nr) setUsedRetornos(prev => new Set(prev).add(nr));
       toast.success("Faturamento salvo!");
       setNumero(""); setValor(""); setClientId(""); setPdfInfo(null);
+      setNotaRetorno(""); setExigeRetorno(false);
       if (fileRef.current) fileRef.current.value = "";
       // Permanece na tela para novos lançamentos
     } catch (err: any) {
@@ -178,6 +222,7 @@ export default function Faturar() {
       setLoading(false);
     }
   };
+
 
   const readyCount = batch.filter(b => b.status === "ready").length;
 
@@ -247,6 +292,17 @@ export default function Faturar() {
                           </div>
                         </div>
                       </div>
+                      {b.status !== "parsing" && b.status !== "saved" && (
+                        <Input
+                          value={b.notaRetorno || ""}
+                          onChange={e => setItemRetorno(i, e.target.value)}
+                          placeholder={b.temCfop5902 ? "Nota retorno *" : "Nota retorno"}
+                          className={`h-8 w-32 text-xs ${b.temCfop5902 && !(b.notaRetorno || "").trim() ? "border-destructive" : ""}`}
+                        />
+                      )}
+                      {b.status === "saved" && b.notaRetorno && (
+                        <span className="text-xs text-muted-foreground">Ret. {b.notaRetorno}</span>
+                      )}
                       <button
                         onClick={() => setBatch(batch.filter((_, j) => j !== i))}
                         className="text-muted-foreground hover:text-foreground"
@@ -310,6 +366,20 @@ export default function Faturar() {
                   <Label>Data</Label>
                   <Input type="date" value={data} onChange={e => setData(e.target.value)} required />
                 </div>
+              </div>
+              <div>
+                <Label>
+                  Nota de retorno {exigeRetorno && <span className="text-destructive">* (CFOP 5902)</span>}
+                </Label>
+                <Input
+                  value={notaRetorno}
+                  onChange={e => setNotaRetorno(e.target.value)}
+                  placeholder="Número da nota de retorno"
+                  required={exigeRetorno}
+                />
+                {notaRetorno.trim() && usedRetornos.has(notaRetorno.trim()) && (
+                  <p className="text-xs text-destructive mt-1">Esta nota de retorno já foi lançada.</p>
+                )}
               </div>
               <Button type="submit" size="lg" className="w-full gradient-primary text-primary-foreground shadow-elevated" disabled={loading}>
                 {loading ? "Salvando..." : "Salvar Faturamento"}

@@ -349,6 +349,7 @@ export type Database = {
           created_at: string
           data_faturamento: string
           id: string
+          nota_retorno: string | null
           numero: string
           user_id: string
           valor: number
@@ -358,6 +359,7 @@ export type Database = {
           created_at?: string
           data_faturamento: string
           id?: string
+          nota_retorno?: string | null
           numero: string
           user_id: string
           valor: number
@@ -367,6 +369,7 @@ export type Database = {
           created_at?: string
           data_faturamento?: string
           id?: string
+          nota_retorno?: string | null
           numero?: string
           user_id?: string
           valor?: number
@@ -374,6 +377,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_list: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          data_alteracao_preco: string | null
+          data_inclusao: string
+          id: string
+          modelo: string
+          servico: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          data_alteracao_preco?: string | null
+          data_inclusao?: string
+          id?: string
+          modelo: string
+          servico: string
+          updated_at?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          data_alteracao_preco?: string | null
+          data_inclusao?: string
+          id?: string
+          modelo?: string
+          servico?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_list_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"

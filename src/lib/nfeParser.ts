@@ -11,6 +11,7 @@ export type NFeData = {
   valor?: number;
   cnpjDestinatario?: string;
   dataEmissao?: string;
+  temCfop5902?: boolean;
   rawText: string;
 };
 
@@ -115,7 +116,11 @@ export async function parseNFePdf(file: File): Promise<NFeData> {
     }
   }
 
-  return { numero, valor, cnpjDestinatario, dataEmissao, rawText: text };
+  // CFOP 5902 (retorno de mercadoria recebida para industrialização)
+  const temCfop5902 = /\b5902\b/.test(text);
+
+  return { numero, valor, cnpjDestinatario, dataEmissao, temCfop5902, rawText: text };
 }
+
 
 export const normalizeCnpj = (s?: string | null) => onlyDigits(s || "");

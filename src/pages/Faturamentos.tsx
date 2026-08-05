@@ -16,11 +16,11 @@ export default function Faturamentos() {
   const [clients, setClients] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState<any>({ client_id: "", numero: "", valor: "", data_faturamento: "" });
+  const [form, setForm] = useState<any>({ client_id: "", numero: "", valor: "", data_faturamento: "", nota_retorno: "" });
 
   const load = async () => {
     const { data } = await supabase.from("invoices")
-      .select("id, numero, valor, data_faturamento, client_id, clients(nome)")
+      .select("id, numero, valor, data_faturamento, client_id, nota_retorno, clients(nome)")
       .order("data_faturamento", { ascending: false });
     setInvoices((data as any) || []);
     const { data: c } = await supabase.from("clients").select("*").order("nome");
@@ -30,19 +30,25 @@ export default function Faturamentos() {
 
   const openEdit = (inv: any) => {
     setEditing(inv);
-    setForm({ client_id: inv.client_id, numero: inv.numero, valor: String(inv.valor), data_faturamento: inv.data_faturamento });
+    setForm({ client_id: inv.client_id, numero: inv.numero, valor: String(inv.valor), data_faturamento: inv.data_faturamento, nota_retorno: inv.nota_retorno || "" });
   };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
+    const nr = String(form.nota_retorno || "").trim();
+    if (nr && invoices.some(i => i.id !== editing.id && String(i.nota_retorno || "").trim() === nr)) {
+      return toast.error(`Nota de retorno ${nr} já lançada em outro faturamento`);
+    }
     const valorNum = parseFloat(String(form.valor).replace(",", "."));
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase.from("invoices").update({
-      client_id: form.client_id, numero: form.numero, valor: valorNum, data_faturamento: form.data_faturamento,
+      client_id: form.client_id, numero: form.numero, valor: valorNum,
+      data_faturamento: form.data_faturamento, nota_retorno: nr || null,
     }).eq("id", editing.id);
     if (error) return toast.error(error.message);
+
 
     // regenerate receivables
     await supabase.from("receivables").delete().eq("invoice_id", editing.id);
@@ -68,7 +74,8 @@ export default function Faturamentos() {
 
   const filtered = invoices.filter(i => {
     const q = search.toLowerCase();
-    return !q || i.numero?.toLowerCase().includes(q) || i.clients?.nome?.toLowerCase().includes(q);
+    return !q || i.numero?.toLowerCase().includes(q) || i.clients?.nome?.toLowerCase().includes(q)
+      || String(i.nota_retorno || "").toLowerCase().includes(q);
   });
 
   return (
@@ -79,7 +86,7 @@ export default function Faturamentos() {
       </header>
 
       <Card className="p-4 shadow-card">
-        <Input placeholder="Buscar nota ou cliente..." value={search} onChange={e => setSearch(e.target.value)} className="mb-3 max-w-xs" />
+        <Input placeholder="Buscar nota, cliente ou nota de retorno..." value={search} onChange={e => setSearch(e.target.value)} className="mb-3 max-w-xs" />
         {filtered.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum faturamento.</p>
         ) : (
@@ -88,7 +95,10 @@ export default function Faturamentos() {
               <div key={i.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
                 <div className="min-w-0">
                   <div className="font-medium truncate">{i.clients?.nome}</div>
-                  <div className="text-xs text-muted-foreground">NF {i.numero} · {fmtDate(i.data_faturamento)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    NF {i.numero} · {fmtDate(i.data_faturamento)}
+                    {i.nota_retorno ? <> · <span className="text-primary font-medium">Retorno {i.nota_retorno}</span></> : null}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{brl(Number(i.valor))}</span>
@@ -119,6 +129,7 @@ export default function Faturamentos() {
               <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} required /></div>
               <div><Label>Data</Label><Input type="date" value={form.data_faturamento} onChange={e => setForm({ ...form, data_faturamento: e.target.value })} required /></div>
             </div>
+            <div><Label>Nota de retorno</Label><Input value={form.nota_retorno} onChange={e => setForm({ ...form, nota_retorno: e.target.value })} placeholder="Opcional (obrigatório em CFOP 5902)" /></div>
             <Button type="submit" size="lg" className="w-full">Salvar</Button>
           </form>
         </DialogContent>
