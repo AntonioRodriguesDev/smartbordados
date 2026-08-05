@@ -124,6 +124,21 @@ export default function Faturar() {
     if (batchRef.current) batchRef.current.value = "";
   };
 
+  const setItemRetorno = (idx: number, value: string) => {
+    setBatch(prev => prev.map((b, i) => {
+      if (i !== idx) return b;
+      const nr = value.trim();
+      const dup = nr && usedRetornos.has(nr);
+      const base = { ...b, notaRetorno: value };
+      if (b.status === "saved") return base;
+      if (dup) return { ...base, status: "error", error: `Nota de retorno ${nr} já utilizada` };
+      const okBase = !!b.clientId && b.valor != null && !!b.numero;
+      if (!okBase) return base;
+      if (b.temCfop5902 && !nr) return { ...base, status: "error", error: "CFOP 5902 — informe a nota de retorno" };
+      return { ...base, status: "ready", error: undefined };
+    }));
+  };
+
   const saveBatch = async () => {
     const ready = batch.filter(b => b.status === "ready");
     if (ready.length === 0) return toast.error("Nenhum PDF pronto para importar");
@@ -133,15 +148,18 @@ export default function Faturar() {
       if (!user) throw new Error("Sem sessão");
 
       const updated = [...batch];
+      const seen = new Set(usedRetornos);
       let ok = 0;
       for (let i = 0; i < updated.length; i++) {
         const item = updated[i];
         if (item.status !== "ready") continue;
         try {
+          const nr = (item.notaRetorno || "").trim();
+          if (nr && seen.has(nr)) throw new Error(`Nota de retorno ${nr} já utilizada`);
           const client = clients.find(c => c.id === item.clientId);
           const { data: inv, error } = await supabase.from("invoices").insert({
             user_id: user.id, client_id: item.clientId!, numero: item.numero!,
-            valor: item.valor!, data_faturamento: item.data!,
+            valor: item.valor!, data_faturamento: item.data!, nota_retorno: nr || null,
           }).select().single();
           if (error) throw error;
           const recvs = computeReceivables(client, item.data!, item.valor!);
@@ -149,6 +167,7 @@ export default function Faturar() {
             recvs.map(r => ({ ...r, user_id: user.id, invoice_id: inv.id, client_id: item.clientId! }))
           );
           if (rErr) throw rErr;
+          if (nr) seen.add(nr);
           updated[i] = { ...item, status: "saved" };
           ok++;
           setBatch([...updated]);
@@ -157,6 +176,7 @@ export default function Faturar() {
           setBatch([...updated]);
         }
       }
+      setUsedRetornos(seen);
       toast.success(`${ok} faturamento(s) importado(s)`);
     } catch (err: any) {
       toast.error(err.message);
@@ -168,6 +188,9 @@ export default function Faturar() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId) return toast.error("Selecione um cliente");
+    const nr = notaRetorno.trim();
+    if (exigeRetorno && !nr) return toast.error("CFOP 5902: informe a nota de retorno");
+    if (nr && usedRetornos.has(nr)) return toast.error(`Nota de retorno ${nr} já utilizada`);
     setLoading(true);
     try {
       const client = clients.find(c => c.id === clientId);
@@ -177,6 +200,7 @@ export default function Faturar() {
       const valorNum = parseFloat(valor.replace(",", "."));
       const { data: inv, error } = await supabase.from("invoices").insert({
         user_id: user.id, client_id: clientId, numero, valor: valorNum, data_faturamento: data,
+        nota_retorno: nr || null,
       }).select().single();
       if (error) throw error;
 
@@ -186,8 +210,10 @@ export default function Faturar() {
       );
       if (rErr) throw rErr;
 
+      if (nr) setUsedRetornos(prev => new Set(prev).add(nr));
       toast.success("Faturamento salvo!");
       setNumero(""); setValor(""); setClientId(""); setPdfInfo(null);
+      setNotaRetorno(""); setExigeRetorno(false);
       if (fileRef.current) fileRef.current.value = "";
       // Permanece na tela para novos lançamentos
     } catch (err: any) {
@@ -196,6 +222,7 @@ export default function Faturar() {
       setLoading(false);
     }
   };
+
 
   const readyCount = batch.filter(b => b.status === "ready").length;
 
