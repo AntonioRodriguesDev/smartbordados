@@ -21,6 +21,8 @@ type BatchItem = {
   cnpj?: string;
   clientId?: string;
   clientName?: string;
+  temCfop5902?: boolean;
+  notaRetorno?: string;
   error?: string;
 };
 
@@ -31,6 +33,8 @@ export default function Faturar() {
   const [numero, setNumero] = useState("");
   const [valor, setValor] = useState("");
   const [data, setData] = useState(todayISO());
+  const [notaRetorno, setNotaRetorno] = useState("");
+  const [exigeRetorno, setExigeRetorno] = useState(false);
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [pdfInfo, setPdfInfo] = useState<string | null>(null);
@@ -38,10 +42,18 @@ export default function Faturar() {
   const batchRef = useRef<HTMLInputElement>(null);
   const [batch, setBatch] = useState<BatchItem[]>([]);
   const [savingBatch, setSavingBatch] = useState(false);
+  const [usedRetornos, setUsedRetornos] = useState<Set<string>>(new Set());
+
+  const loadRetornos = async () => {
+    const { data } = await supabase.from("invoices").select("nota_retorno").not("nota_retorno", "is", null);
+    setUsedRetornos(new Set(((data as any[]) || []).map(r => String(r.nota_retorno).trim()).filter(Boolean)));
+  };
 
   useEffect(() => {
     supabase.from("clients").select("*").order("nome").then(({ data }) => setClients(data || []));
+    loadRetornos();
   }, []);
+
 
   const handlePdf = async (file: File) => {
     setParsing(true);
