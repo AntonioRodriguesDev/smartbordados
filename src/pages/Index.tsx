@@ -43,6 +43,7 @@ const Index = () => {
         <Route path="funcionarios" element={<Funcionarios />} />
         <Route path="financeiro" element={<Financeiro />} />
         <Route path="custos" element={<Custos />} />
+        <Route path="precos" element={<Precos />} />
       </Routes>
     </AppShell>
   );
