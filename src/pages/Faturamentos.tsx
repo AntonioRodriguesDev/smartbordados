@@ -16,11 +16,11 @@ export default function Faturamentos() {
   const [clients, setClients] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState<any>({ client_id: "", numero: "", valor: "", data_faturamento: "" });
+  const [form, setForm] = useState<any>({ client_id: "", numero: "", valor: "", data_faturamento: "", nota_retorno: "" });
 
   const load = async () => {
     const { data } = await supabase.from("invoices")
-      .select("id, numero, valor, data_faturamento, client_id, clients(nome)")
+      .select("id, numero, valor, data_faturamento, client_id, nota_retorno, clients(nome)")
       .order("data_faturamento", { ascending: false });
     setInvoices((data as any) || []);
     const { data: c } = await supabase.from("clients").select("*").order("nome");
@@ -30,19 +30,25 @@ export default function Faturamentos() {
 
   const openEdit = (inv: any) => {
     setEditing(inv);
-    setForm({ client_id: inv.client_id, numero: inv.numero, valor: String(inv.valor), data_faturamento: inv.data_faturamento });
+    setForm({ client_id: inv.client_id, numero: inv.numero, valor: String(inv.valor), data_faturamento: inv.data_faturamento, nota_retorno: inv.nota_retorno || "" });
   };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
+    const nr = String(form.nota_retorno || "").trim();
+    if (nr && invoices.some(i => i.id !== editing.id && String(i.nota_retorno || "").trim() === nr)) {
+      return toast.error(`Nota de retorno ${nr} já lançada em outro faturamento`);
+    }
     const valorNum = parseFloat(String(form.valor).replace(",", "."));
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase.from("invoices").update({
-      client_id: form.client_id, numero: form.numero, valor: valorNum, data_faturamento: form.data_faturamento,
+      client_id: form.client_id, numero: form.numero, valor: valorNum,
+      data_faturamento: form.data_faturamento, nota_retorno: nr || null,
     }).eq("id", editing.id);
     if (error) return toast.error(error.message);
+
 
     // regenerate receivables
     await supabase.from("receivables").delete().eq("invoice_id", editing.id);
