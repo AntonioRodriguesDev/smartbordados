@@ -367,6 +367,20 @@ export default function Faturar() {
                   <Input type="date" value={data} onChange={e => setData(e.target.value)} required />
                 </div>
               </div>
+              <div>
+                <Label>
+                  Nota de retorno {exigeRetorno && <span className="text-destructive">* (CFOP 5902)</span>}
+                </Label>
+                <Input
+                  value={notaRetorno}
+                  onChange={e => setNotaRetorno(e.target.value)}
+                  placeholder="Número da nota de retorno"
+                  required={exigeRetorno}
+                />
+                {notaRetorno.trim() && usedRetornos.has(notaRetorno.trim()) && (
+                  <p className="text-xs text-destructive mt-1">Esta nota de retorno já foi lançada.</p>
+                )}
+              </div>
               <Button type="submit" size="lg" className="w-full gradient-primary text-primary-foreground shadow-elevated" disabled={loading}>
                 {loading ? "Salvando..." : "Salvar Faturamento"}
               </Button>
