@@ -67,13 +67,15 @@ export default function Faturar() {
       if (nfe.numero) setNumero(nfe.numero);
       if (nfe.valor != null) setValor(String(nfe.valor.toFixed(2)));
       if (nfe.dataEmissao) setData(nfe.dataEmissao);
+      setExigeRetorno(!!nfe.temCfop5902);
+      const cfopMsg = nfe.temCfop5902 ? " • CFOP 5902 detectado: informe a nota de retorno." : "";
       if (matched) {
         setClientId(matched.id);
-        setPdfInfo(`✓ Cliente identificado: ${matched.nome} (CNPJ ${nfe.cnpjDestinatario})`);
+        setPdfInfo(`✓ Cliente identificado: ${matched.nome} (CNPJ ${nfe.cnpjDestinatario})${cfopMsg}`);
       } else if (nfe.cnpjDestinatario) {
-        setPdfInfo(`⚠ CNPJ ${nfe.cnpjDestinatario} não encontrado no cadastro. Selecione o cliente manualmente.`);
+        setPdfInfo(`⚠ CNPJ ${nfe.cnpjDestinatario} não encontrado no cadastro. Selecione o cliente manualmente.${cfopMsg}`);
       } else {
-        setPdfInfo("⚠ Não foi possível extrair o CNPJ. Preencha manualmente.");
+        setPdfInfo(`⚠ Não foi possível extrair o CNPJ. Preencha manualmente.${cfopMsg}`);
       }
       toast.success("Dados extraídos da nota");
     } catch (err: any) {
