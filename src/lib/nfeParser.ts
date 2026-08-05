@@ -11,6 +11,7 @@ export type NFeData = {
   valor?: number;
   cnpjDestinatario?: string;
   dataEmissao?: string;
+  temCfop5902?: boolean;
   rawText: string;
 };
 
