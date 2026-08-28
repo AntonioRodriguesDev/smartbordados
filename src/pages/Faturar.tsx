@@ -184,6 +184,7 @@ export default function Faturar() {
           );
           if (rErr) throw rErr;
           if (nr) seen.add(nr);
+          seenNotas.add(key);
           updated[i] = { ...item, status: "saved" };
           ok++;
           setBatch([...updated]);
@@ -193,7 +194,9 @@ export default function Faturar() {
         }
       }
       setUsedRetornos(seen);
+      setUsedNotas(seenNotas);
       toast.success(`${ok} faturamento(s) importado(s)`);
+
     } catch (err: any) {
       toast.error(err.message);
     } finally {
