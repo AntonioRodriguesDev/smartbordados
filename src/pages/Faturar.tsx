@@ -232,7 +232,9 @@ export default function Faturar() {
       if (rErr) throw rErr;
 
       if (nr) setUsedRetornos(prev => new Set(prev).add(nr));
+      setUsedNotas(prev => new Set(prev).add(notaKey(clientId, numero)));
       toast.success("Faturamento salvo!");
+
       setNumero(""); setValor(""); setClientId(""); setPdfInfo(null);
       setNotaRetorno(""); setExigeRetorno(false);
       if (fileRef.current) fileRef.current.value = "";
