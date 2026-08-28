@@ -44,6 +44,10 @@ export default function Faturamentos() {
     if (nr && invoices.some(i => i.id !== editing.id && String(i.nota_retorno || "").trim() === nr)) {
       return toast.error(`Nota de retorno ${nr} já lançada em outro faturamento`);
     }
+    if (invoices.some(i => i.id !== editing.id && notaKey(i.client_id, i.numero) === notaKey(form.client_id, form.numero))) {
+      return toast.error(`NF ${form.numero} já lançada para este cliente`);
+    }
+
     const valorNum = parseFloat(String(form.valor).replace(",", "."));
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
