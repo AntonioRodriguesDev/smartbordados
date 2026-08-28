@@ -43,16 +43,22 @@ export default function Faturar() {
   const [batch, setBatch] = useState<BatchItem[]>([]);
   const [savingBatch, setSavingBatch] = useState(false);
   const [usedRetornos, setUsedRetornos] = useState<Set<string>>(new Set());
+  const [usedNotas, setUsedNotas] = useState<Set<string>>(new Set());
+
+  const notaKey = (cid: string, num: string) => `${cid}|${String(num).trim().toUpperCase()}`;
 
   const loadRetornos = async () => {
-    const { data } = await supabase.from("invoices").select("nota_retorno").not("nota_retorno", "is", null);
-    setUsedRetornos(new Set(((data as any[]) || []).map(r => String(r.nota_retorno).trim()).filter(Boolean)));
+    const { data } = await supabase.from("invoices").select("numero, client_id, nota_retorno");
+    const rows = (data as any[]) || [];
+    setUsedRetornos(new Set(rows.map(r => String(r.nota_retorno || "").trim()).filter(Boolean)));
+    setUsedNotas(new Set(rows.filter(r => r.client_id && r.numero).map(r => notaKey(r.client_id, r.numero))));
   };
 
   useEffect(() => {
     supabase.from("clients").select("*").order("nome").then(({ data }) => setClients(data || []));
     loadRetornos();
   }, []);
+
 
 
   const handlePdf = async (file: File) => {
