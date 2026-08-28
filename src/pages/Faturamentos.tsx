@@ -15,8 +15,12 @@ export default function Faturamentos() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [onlyDup, setOnlyDup] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({ client_id: "", numero: "", valor: "", data_faturamento: "", nota_retorno: "" });
+
+  const notaKey = (cid: string, num: string) => `${cid}|${String(num || "").trim().toUpperCase()}`;
+
 
   const load = async () => {
     const { data } = await supabase.from("invoices")
