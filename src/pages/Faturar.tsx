@@ -161,6 +161,7 @@ export default function Faturar() {
 
       const updated = [...batch];
       const seen = new Set(usedRetornos);
+      const seenNotas = new Set(usedNotas);
       let ok = 0;
       for (let i = 0; i < updated.length; i++) {
         const item = updated[i];
@@ -168,7 +169,10 @@ export default function Faturar() {
         try {
           const nr = (item.notaRetorno || "").trim();
           if (nr && seen.has(nr)) throw new Error(`Nota de retorno ${nr} já utilizada`);
+          const key = notaKey(item.clientId!, item.numero!);
+          if (seenNotas.has(key)) throw new Error(`NF ${item.numero} já lançada para este cliente`);
           const client = clients.find(c => c.id === item.clientId);
+
           const { data: inv, error } = await supabase.from("invoices").insert({
             user_id: user.id, client_id: item.clientId!, numero: item.numero!,
             valor: item.valor!, data_faturamento: item.data!, nota_retorno: nr || null,
