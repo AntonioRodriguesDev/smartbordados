@@ -207,6 +207,7 @@ export type Database = {
           employee_id: string
           id: string
           quitado: boolean
+          tipo: string
           user_id: string
           valor: number
         }
@@ -217,6 +218,7 @@ export type Database = {
           employee_id: string
           id?: string
           quitado?: boolean
+          tipo?: string
           user_id: string
           valor: number
         }
@@ -227,6 +229,7 @@ export type Database = {
           employee_id?: string
           id?: string
           quitado?: boolean
+          tipo?: string
           user_id?: string
           valor?: number
         }
@@ -235,6 +238,9 @@ export type Database = {
       employees: {
         Row: {
           cargo: string | null
+          ciclo: string
+          ciclo_dia_1: number
+          ciclo_dia_2: number
           cpf: string | null
           created_at: string
           data_admissao: string | null
@@ -250,10 +256,16 @@ export type Database = {
           setor: string | null
           status: string
           telefone: string | null
+          tipo_pagamento: string
           user_id: string
+          valor_hora: number
+          valor_peca: number
         }
         Insert: {
           cargo?: string | null
+          ciclo?: string
+          ciclo_dia_1?: number
+          ciclo_dia_2?: number
           cpf?: string | null
           created_at?: string
           data_admissao?: string | null
@@ -269,10 +281,16 @@ export type Database = {
           setor?: string | null
           status?: string
           telefone?: string | null
+          tipo_pagamento?: string
           user_id: string
+          valor_hora?: number
+          valor_peca?: number
         }
         Update: {
           cargo?: string | null
+          ciclo?: string
+          ciclo_dia_1?: number
+          ciclo_dia_2?: number
           cpf?: string | null
           created_at?: string
           data_admissao?: string | null
@@ -288,7 +306,10 @@ export type Database = {
           setor?: string | null
           status?: string
           telefone?: string | null
+          tipo_pagamento?: string
           user_id?: string
+          valor_hora?: number
+          valor_peca?: number
         }
         Relationships: []
       }
@@ -380,6 +401,115 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_entries: {
+        Row: {
+          created_at: string
+          data: string
+          employee_id: string
+          horas: number
+          id: string
+          observacao: string | null
+          pecas: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          employee_id: string
+          horas?: number
+          id?: string
+          observacao?: string | null
+          pecas?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          employee_id?: string
+          horas?: number
+          id?: string
+          observacao?: string | null
+          pecas?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_periods: {
+        Row: {
+          adiantamentos: number
+          bruto: number
+          created_at: string
+          descontos: number
+          employee_id: string
+          fim: string
+          id: string
+          inicio: string
+          liquido: number
+          observacao: string | null
+          quantidade: number
+          status: string
+          tipo_pagamento: string
+          updated_at: string
+          user_id: string
+          valor_unitario: number
+        }
+        Insert: {
+          adiantamentos?: number
+          bruto?: number
+          created_at?: string
+          descontos?: number
+          employee_id: string
+          fim: string
+          id?: string
+          inicio: string
+          liquido?: number
+          observacao?: string | null
+          quantidade?: number
+          status?: string
+          tipo_pagamento?: string
+          updated_at?: string
+          user_id: string
+          valor_unitario?: number
+        }
+        Update: {
+          adiantamentos?: number
+          bruto?: number
+          created_at?: string
+          descontos?: number
+          employee_id?: string
+          fim?: string
+          id?: string
+          inicio?: string
+          liquido?: number
+          observacao?: string | null
+          quantidade?: number
+          status?: string
+          tipo_pagamento?: string
+          updated_at?: string
+          user_id?: string
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_periods_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
