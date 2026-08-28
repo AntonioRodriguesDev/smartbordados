@@ -10,12 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Users, Cake, Wallet, Banknote, Search, Pencil, Trash2, Star, Bell } from "lucide-react";
+import { Plus, Users, Cake, Wallet, Banknote, Search, Pencil, Trash2, Star, Bell, Clock, Printer, Calculator } from "lucide-react";
 import { brl, fmtDate, todayISO } from "@/lib/format";
+import { periodsForMonth, periodIndexFor, unitValue, unitLabel } from "@/lib/payroll";
 import { toast } from "sonner";
 
 const SETORES = ["Corte", "Bordado", "Chanfrado", "Separação", "Acabamento", "Revisão", "Administrativo"];
 const HABILIDADES = ["Corte", "Bordado", "Chanfrado", "Separação", "Acabamento", "Revisão"];
+
 
 const initials = (n: string) => n.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
 

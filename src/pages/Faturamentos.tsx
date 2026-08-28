@@ -15,8 +15,12 @@ export default function Faturamentos() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [onlyDup, setOnlyDup] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({ client_id: "", numero: "", valor: "", data_faturamento: "", nota_retorno: "" });
+
+  const notaKey = (cid: string, num: string) => `${cid}|${String(num || "").trim().toUpperCase()}`;
+
 
   const load = async () => {
     const { data } = await supabase.from("invoices")
@@ -40,6 +44,10 @@ export default function Faturamentos() {
     if (nr && invoices.some(i => i.id !== editing.id && String(i.nota_retorno || "").trim() === nr)) {
       return toast.error(`Nota de retorno ${nr} já lançada em outro faturamento`);
     }
+    if (invoices.some(i => i.id !== editing.id && notaKey(i.client_id, i.numero) === notaKey(form.client_id, form.numero))) {
+      return toast.error(`NF ${form.numero} já lançada para este cliente`);
+    }
+
     const valorNum = parseFloat(String(form.valor).replace(",", "."));
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -72,8 +80,19 @@ export default function Faturamentos() {
     load();
   };
 
+  const dupKeys = (() => {
+    const count = new Map<string, number>();
+    invoices.forEach(i => {
+      const k = notaKey(i.client_id, i.numero);
+      count.set(k, (count.get(k) || 0) + 1);
+    });
+    return new Set([...count.entries()].filter(([, n]) => n > 1).map(([k]) => k));
+  })();
+  const isDup = (i: any) => dupKeys.has(notaKey(i.client_id, i.numero));
+
   const filtered = invoices.filter(i => {
     const q = search.toLowerCase();
+    if (onlyDup && !isDup(i)) return false;
     return !q || i.numero?.toLowerCase().includes(q) || i.clients?.nome?.toLowerCase().includes(q)
       || String(i.nota_retorno || "").toLowerCase().includes(q);
   });
@@ -85,6 +104,18 @@ export default function Faturamentos() {
         <p className="text-muted-foreground text-sm">Edite ou exclua lançamentos</p>
       </header>
 
+      {dupKeys.size > 0 && (
+        <Card className="p-3 border-destructive/40 bg-destructive/5 flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-sm">
+            <strong className="text-destructive">{dupKeys.size} nota(s) duplicada(s)</strong>
+            <span className="text-muted-foreground"> — mesmo número lançado mais de uma vez para o mesmo cliente.</span>
+          </div>
+          <Button size="sm" variant={onlyDup ? "default" : "outline"} onClick={() => setOnlyDup(!onlyDup)}>
+            {onlyDup ? "Ver todas" : "Ver duplicadas"}
+          </Button>
+        </Card>
+      )}
+
       <Card className="p-4 shadow-card">
         <Input placeholder="Buscar nota, cliente ou nota de retorno..." value={search} onChange={e => setSearch(e.target.value)} className="mb-3 max-w-xs" />
         {filtered.length === 0 ? (
@@ -92,9 +123,12 @@ export default function Faturamentos() {
         ) : (
           <div className="space-y-2">
             {filtered.map(i => (
-              <div key={i.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+              <div key={i.id} className={`flex items-center justify-between p-3 rounded-lg ${isDup(i) ? "bg-destructive/10 ring-1 ring-destructive/30" : "bg-secondary/50"}`}>
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{i.clients?.nome}</div>
+                  <div className="font-medium truncate flex items-center gap-2">
+                    {i.clients?.nome}
+                    {isDup(i) && <span className="text-[10px] uppercase font-semibold text-destructive border border-destructive/40 rounded px-1.5 py-0.5">duplicada</span>}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     NF {i.numero} · {fmtDate(i.data_faturamento)}
                     {i.nota_retorno ? <> · <span className="text-primary font-medium">Retorno {i.nota_retorno}</span></> : null}
@@ -109,6 +143,7 @@ export default function Faturamentos() {
             ))}
           </div>
         )}
+
       </Card>
 
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>

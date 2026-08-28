@@ -43,16 +43,22 @@ export default function Faturar() {
   const [batch, setBatch] = useState<BatchItem[]>([]);
   const [savingBatch, setSavingBatch] = useState(false);
   const [usedRetornos, setUsedRetornos] = useState<Set<string>>(new Set());
+  const [usedNotas, setUsedNotas] = useState<Set<string>>(new Set());
+
+  const notaKey = (cid: string, num: string) => `${cid}|${String(num).trim().toUpperCase()}`;
 
   const loadRetornos = async () => {
-    const { data } = await supabase.from("invoices").select("nota_retorno").not("nota_retorno", "is", null);
-    setUsedRetornos(new Set(((data as any[]) || []).map(r => String(r.nota_retorno).trim()).filter(Boolean)));
+    const { data } = await supabase.from("invoices").select("numero, client_id, nota_retorno");
+    const rows = (data as any[]) || [];
+    setUsedRetornos(new Set(rows.map(r => String(r.nota_retorno || "").trim()).filter(Boolean)));
+    setUsedNotas(new Set(rows.filter(r => r.client_id && r.numero).map(r => notaKey(r.client_id, r.numero))));
   };
 
   useEffect(() => {
     supabase.from("clients").select("*").order("nome").then(({ data }) => setClients(data || []));
     loadRetornos();
   }, []);
+
 
 
   const handlePdf = async (file: File) => {
@@ -98,9 +104,11 @@ export default function Faturar() {
           ? clients.find(c => normalizeCnpj(c.cnpj) === normalizeCnpj(nfe.cnpjDestinatario))
           : null;
         const faltaRetorno = !!nfe.temCfop5902;
+        const key = matched && nfe.numero ? notaKey(matched.id, nfe.numero) : null;
+        const jaLancada = !!key && (usedNotas.has(key) || results.some(r => r.clientId && r.numero && notaKey(r.clientId, r.numero) === key));
         results.push({
           fileName: file.name,
-          status: matched && nfe.valor != null && nfe.numero && !faltaRetorno ? "ready" : "error",
+          status: matched && nfe.valor != null && nfe.numero && !faltaRetorno && !jaLancada ? "ready" : "error",
           numero: nfe.numero,
           valor: nfe.valor,
           data: nfe.dataEmissao || todayISO(),
@@ -113,9 +121,11 @@ export default function Faturar() {
             ? (nfe.cnpjDestinatario ? `CNPJ ${nfe.cnpjDestinatario} não cadastrado` : "CNPJ não encontrado no PDF")
             : !nfe.numero ? "Número não encontrado"
             : nfe.valor == null ? "Valor não encontrado"
+            : jaLancada ? `NF ${nfe.numero} já lançada para ${matched.nome}`
             : faltaRetorno ? "CFOP 5902 — informe a nota de retorno"
             : undefined,
         });
+
       } catch (err: any) {
         results.push({ fileName: file.name, status: "error", error: err.message || "Falha ao ler PDF" });
       }
@@ -134,7 +144,9 @@ export default function Faturar() {
       if (dup) return { ...base, status: "error", error: `Nota de retorno ${nr} já utilizada` };
       const okBase = !!b.clientId && b.valor != null && !!b.numero;
       if (!okBase) return base;
+      if (usedNotas.has(notaKey(b.clientId!, b.numero!))) return { ...base, status: "error", error: `NF ${b.numero} já lançada para este cliente` };
       if (b.temCfop5902 && !nr) return { ...base, status: "error", error: "CFOP 5902 — informe a nota de retorno" };
+
       return { ...base, status: "ready", error: undefined };
     }));
   };
@@ -149,6 +161,7 @@ export default function Faturar() {
 
       const updated = [...batch];
       const seen = new Set(usedRetornos);
+      const seenNotas = new Set(usedNotas);
       let ok = 0;
       for (let i = 0; i < updated.length; i++) {
         const item = updated[i];
@@ -156,7 +169,10 @@ export default function Faturar() {
         try {
           const nr = (item.notaRetorno || "").trim();
           if (nr && seen.has(nr)) throw new Error(`Nota de retorno ${nr} já utilizada`);
+          const key = notaKey(item.clientId!, item.numero!);
+          if (seenNotas.has(key)) throw new Error(`NF ${item.numero} já lançada para este cliente`);
           const client = clients.find(c => c.id === item.clientId);
+
           const { data: inv, error } = await supabase.from("invoices").insert({
             user_id: user.id, client_id: item.clientId!, numero: item.numero!,
             valor: item.valor!, data_faturamento: item.data!, nota_retorno: nr || null,
@@ -168,6 +184,7 @@ export default function Faturar() {
           );
           if (rErr) throw rErr;
           if (nr) seen.add(nr);
+          seenNotas.add(key);
           updated[i] = { ...item, status: "saved" };
           ok++;
           setBatch([...updated]);
@@ -177,7 +194,9 @@ export default function Faturar() {
         }
       }
       setUsedRetornos(seen);
+      setUsedNotas(seenNotas);
       toast.success(`${ok} faturamento(s) importado(s)`);
+
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -191,6 +210,8 @@ export default function Faturar() {
     const nr = notaRetorno.trim();
     if (exigeRetorno && !nr) return toast.error("CFOP 5902: informe a nota de retorno");
     if (nr && usedRetornos.has(nr)) return toast.error(`Nota de retorno ${nr} já utilizada`);
+    if (usedNotas.has(notaKey(clientId, numero))) return toast.error(`NF ${numero} já lançada para este cliente`);
+
     setLoading(true);
     try {
       const client = clients.find(c => c.id === clientId);
@@ -211,7 +232,9 @@ export default function Faturar() {
       if (rErr) throw rErr;
 
       if (nr) setUsedRetornos(prev => new Set(prev).add(nr));
+      setUsedNotas(prev => new Set(prev).add(notaKey(clientId, numero)));
       toast.success("Faturamento salvo!");
+
       setNumero(""); setValor(""); setClientId(""); setPdfInfo(null);
       setNotaRetorno(""); setExigeRetorno(false);
       if (fileRef.current) fileRef.current.value = "";
