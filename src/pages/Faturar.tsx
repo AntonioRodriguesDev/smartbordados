@@ -144,7 +144,9 @@ export default function Faturar() {
       if (dup) return { ...base, status: "error", error: `Nota de retorno ${nr} já utilizada` };
       const okBase = !!b.clientId && b.valor != null && !!b.numero;
       if (!okBase) return base;
+      if (usedNotas.has(notaKey(b.clientId!, b.numero!))) return { ...base, status: "error", error: `NF ${b.numero} já lançada para este cliente` };
       if (b.temCfop5902 && !nr) return { ...base, status: "error", error: "CFOP 5902 — informe a nota de retorno" };
+
       return { ...base, status: "ready", error: undefined };
     }));
   };
