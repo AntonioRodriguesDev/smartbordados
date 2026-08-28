@@ -210,6 +210,8 @@ export default function Faturar() {
     const nr = notaRetorno.trim();
     if (exigeRetorno && !nr) return toast.error("CFOP 5902: informe a nota de retorno");
     if (nr && usedRetornos.has(nr)) return toast.error(`Nota de retorno ${nr} já utilizada`);
+    if (usedNotas.has(notaKey(clientId, numero))) return toast.error(`NF ${numero} já lançada para este cliente`);
+
     setLoading(true);
     try {
       const client = clients.find(c => c.id === clientId);
