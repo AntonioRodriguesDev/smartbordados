@@ -555,13 +555,97 @@ export default function Funcionarios() {
                 </Card>
               </div>
 
-              <Tabs defaultValue="dados">
-                <TabsList className="grid grid-cols-4 w-full">
+              <Tabs defaultValue="folha">
+                <TabsList className="grid grid-cols-5 w-full">
+                  <TabsTrigger value="folha">Folha</TabsTrigger>
                   <TabsTrigger value="dados">Dados</TabsTrigger>
                   <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
                   <TabsTrigger value="vales">Vales</TabsTrigger>
-                  <TabsTrigger value="habilidades">Habilidades</TabsTrigger>
+                  <TabsTrigger value="habilidades">Skills</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="folha" className="space-y-3 pt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Mês</Label>
+                      <Input type="month" value={refMes} onChange={e => setRefMes(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Período</Label>
+                      <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {selPeriods.map((p, i) => <SelectItem key={i} value={String(i)}>{p.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <form onSubmit={addEntry} className="flex items-end gap-2 p-2 rounded-lg bg-secondary/40">
+                    <div className="w-36">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Data</Label>
+                      <Input type="date" value={entryForm.data} onChange={e => setEntryForm({ ...entryForm, data: e.target.value })} />
+                    </div>
+                    <div className="w-24">
+                      <Label className="text-[10px] uppercase text-muted-foreground">{unitLabel(selected)}</Label>
+                      <Input type="number" step="0.01" value={entryForm.quantidade} onChange={e => setEntryForm({ ...entryForm, quantidade: e.target.value })} placeholder="0" />
+                    </div>
+                    <div className="flex-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Obs.</Label>
+                      <Input value={entryForm.observacao} onChange={e => setEntryForm({ ...entryForm, observacao: e.target.value })} />
+                    </div>
+                    <Button type="submit" size="icon"><Plus className="w-4 h-4" /></Button>
+                  </form>
+
+                  <div className="space-y-1 max-h-52 overflow-y-auto">
+                    {selEntries.length === 0 && <p className="text-xs text-muted-foreground">Nenhum apontamento neste período.</p>}
+                    {selEntries.map(e => (
+                      <div key={e.id} className="flex justify-between items-center p-2 rounded bg-secondary/30 text-sm">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2"><Clock className="w-3 h-3 text-muted-foreground" /> {fmtDate(e.data)}</div>
+                          {e.observacao && <div className="text-[10px] text-muted-foreground truncate">{e.observacao}</div>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{Number(e.quantidade)} {unitLabel(selected)}</span>
+                          <Button variant="ghost" size="icon" onClick={() => removeEntry(e.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Card className="p-3 space-y-1 text-sm bg-secondary/40 border-0">
+                    <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />
+                    <Row l="Valor unitário" v={brl(unit)} />
+                    <Row l="Bruto" v={brl(brutoPeriodo)} />
+                    <Row l="(-) Vales / empréstimos" v={brl(adiantPeriodo)} />
+                    <Row l="(-) Descontos" v={brl(descontosPeriodo)} />
+                    <div className="flex justify-between pt-2 mt-1 border-t font-bold">
+                      <span>Líquido</span><span className="text-primary">{brl(liquidoPeriodo)}</span>
+                    </div>
+                  </Card>
+
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={fecharPeriodo} disabled={closing} className="flex-1">
+                      <Calculator className="w-4 h-4 mr-1" /> Fechar período
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={imprimirPeriodo} className="flex-1">
+                      <Printer className="w-4 h-4 mr-1" /> Imprimir recibo
+                    </Button>
+                  </div>
+
+                  {fechamentos.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Histórico de fechamentos</div>
+                      {fechamentos.slice(0, 8).map(f => (
+                        <div key={f.id} className="flex justify-between items-center p-2 rounded bg-secondary/30 text-xs">
+                          <span>{fmtDate(f.inicio)} a {fmtDate(f.fim)} · {Number(f.quantidade)} {f.tipo === "peca" ? "peças" : "horas"}</span>
+                          <span className="font-semibold">{brl(Number(f.liquido))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
 
                 <TabsContent value="dados" className="space-y-2 text-sm pt-3">
                   <div className="grid grid-cols-2 gap-3">
