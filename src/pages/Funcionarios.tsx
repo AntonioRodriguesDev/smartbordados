@@ -271,6 +271,87 @@ export default function Funcionarios() {
     load();
   };
 
+  // ===== Apontamentos e fechamento de folha =====
+  const addEntry = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!selected) return;
+    const q = Number(String(entryForm.quantidade).replace(",", "."));
+    if (!q || q <= 0) return toast.error("Informe a quantidade");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("payroll_entries").insert({
+      user_id: user.id, employee_id: selected.id, data: entryForm.data,
+      quantidade: q, tipo: selected.tipo_pagamento || "hora", observacao: entryForm.observacao || null,
+    });
+    if (error) return toast.error(error.message);
+    setEntryForm({ data: entryForm.data, quantidade: "", observacao: "" });
+    load();
+  };
+
+  const removeEntry = async (id: string) => {
+    await supabase.from("payroll_entries").delete().eq("id", id);
+    load();
+  };
+
+  const fecharPeriodo = async () => {
+    if (!selected || !curPeriod) return;
+    if (qtdPeriodo <= 0) return toast.error("Sem apontamentos no período");
+    setClosing(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return setClosing(false);
+    const { error } = await supabase.from("payroll_periods").insert({
+      user_id: user.id, employee_id: selected.id,
+      inicio: curPeriod.inicio, fim: curPeriod.fim,
+      tipo: selected.tipo_pagamento || "hora",
+      quantidade: qtdPeriodo, valor_unitario: unit,
+      bruto: brutoPeriodo, descontos: descontosPeriodo,
+      adiantamentos: adiantPeriodo, liquido: liquidoPeriodo, status: "fechado",
+    });
+    setClosing(false);
+    if (error) return toast.error(error.message);
+    toast.success("Período fechado");
+    load();
+  };
+
+  const imprimirPeriodo = () => {
+    if (!selected || !curPeriod) return;
+    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${Number(e.quantidade)}</td><td>${e.observacao || ""}</td></tr>`).join("");
+    const descLinhas = valesPeriodo.map(v => `<tr><td>${fmtDate(v.data)}</td><td>${v.tipo || "vale"}</td><td>${v.descricao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${selected.nome}</title>
+      <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#222}
+      h1{font-size:18px;margin:0}h2{font-size:13px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.05em;color:#666}
+      table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid #ddd;padding:5px 4px;text-align:left}
+      .tot{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
+      .tot.big{font-weight:bold;font-size:15px;border-top:2px solid #333;margin-top:6px;padding-top:8px}
+      .sign{margin-top:56px;border-top:1px solid #333;width:60%;padding-top:6px;font-size:12px}</style></head>
+      <body>
+      <h1>Smart Bordados — Recibo de Pagamento</h1>
+      <div style="font-size:12px;margin-top:6px">
+        <strong>${selected.nome}</strong> · ${selected.cargo || ""} ${selected.setor ? "· " + selected.setor : ""}<br/>
+        Período: ${fmtDate(curPeriod.inicio)} a ${fmtDate(curPeriod.fim)} · Pagamento por ${unitLabel(selected)}
+      </div>
+      <h2>Apontamentos</h2>
+      <table><thead><tr><th>Data</th><th style="text-align:right">${unitLabel(selected)}</th><th>Obs.</th></tr></thead><tbody>${linhas || "<tr><td colspan=3>Sem apontamentos</td></tr>"}</tbody></table>
+      <h2>Descontos, vales e empréstimos</h2>
+      <table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody>${descLinhas || "<tr><td colspan=4>Nenhum</td></tr>"}</tbody></table>
+      <h2>Resumo</h2>
+      <div class="tot"><span>Total de ${unitLabel(selected)}</span><span>${qtdPeriodo}</span></div>
+      <div class="tot"><span>Valor unitário</span><span>${brl(unit)}</span></div>
+      <div class="tot"><span>Bruto</span><span>${brl(brutoPeriodo)}</span></div>
+      <div class="tot"><span>(-) Vales / empréstimos</span><span>${brl(adiantPeriodo)}</span></div>
+      <div class="tot"><span>(-) Descontos</span><span>${brl(descontosPeriodo)}</span></div>
+      <div class="tot big"><span>Líquido a receber</span><span>${brl(liquidoPeriodo)}</span></div>
+      <div class="sign">Assinatura do funcionário</div>
+      </body></html>`;
+    const w = window.open("", "_blank", "width=800,height=900");
+    if (!w) return toast.error("Permita pop-ups para imprimir");
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
+  };
+
+
   return (
     <div className="space-y-6">
       <header className="flex items-start justify-between flex-wrap gap-3">
