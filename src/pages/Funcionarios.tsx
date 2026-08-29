@@ -197,6 +197,8 @@ export default function Funcionarios() {
     await supabase.from("employee_skills").delete().eq("employee_id", id);
     await supabase.from("employee_vales").delete().eq("employee_id", id);
     await supabase.from("employee_payments").delete().eq("employee_id", id);
+    await supabase.from("payroll_entries").delete().eq("employee_id", id);
+    await supabase.from("payroll_periods").delete().eq("employee_id", id);
     await supabase.from("employees").delete().eq("id", id);
     toast.success("Removido");
     setSelectedId(null);
@@ -209,14 +211,15 @@ export default function Funcionarios() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase.from("employee_vales").insert({
-      user_id: user.id, employee_id: selected.id,
+      user_id: user.id, employee_id: selected.id, tipo: valeForm.tipo,
       valor: Number(valeForm.valor), data: valeForm.data, descricao: valeForm.descricao || null,
     });
     if (error) return toast.error(error.message);
-    toast.success("Vale lançado");
-    setValeOpen(false); setValeForm({ valor: "", data: todayISO(), descricao: "" });
+    toast.success("Lançamento salvo");
+    setValeOpen(false); setValeForm({ valor: "", data: todayISO(), descricao: "", tipo: "vale" });
     load();
   };
+
 
   const removeVale = async (id: string) => {
     await supabase.from("employee_vales").delete().eq("id", id);
