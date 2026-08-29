@@ -178,7 +178,12 @@ export default function Funcionarios() {
       dia_pagamento: Number(form.dia_pagamento || 5),
       data_nascimento: form.data_nascimento || null,
       data_admissao: form.data_admissao || null,
+      valor_hora: Number(form.valor_hora || 0),
+      valor_peca: Number(form.valor_peca || 0),
+      ciclo_dia_1: Number(form.ciclo_dia_1 || 15),
+      ciclo_dia_2: Number(form.ciclo_dia_2 || 30),
     };
+
     let error;
     if (editingId) ({ error } = await supabase.from("employees").update(payload).eq("id", editingId));
     else ({ error } = await supabase.from("employees").insert({ ...payload, user_id: user.id }));
