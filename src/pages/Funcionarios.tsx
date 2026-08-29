@@ -732,10 +732,21 @@ export default function Funcionarios() {
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-muted-foreground">Saldo aberto: <strong className="text-warning">{brl(valeSaldo(selected.id))}</strong></div>
                     <Dialog open={valeOpen} onOpenChange={setValeOpen}>
-                      <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Lançar vale</Button></DialogTrigger>
+                      <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Lançar</Button></DialogTrigger>
                       <DialogContent>
-                        <DialogHeader><DialogTitle>Novo vale</DialogTitle></DialogHeader>
+                        <DialogHeader><DialogTitle>Vale, empréstimo ou desconto</DialogTitle></DialogHeader>
                         <form onSubmit={addVale} className="space-y-3">
+                          <div>
+                            <Label>Tipo</Label>
+                            <Select value={valeForm.tipo} onValueChange={v => setValeForm({ ...valeForm, tipo: v })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="vale">Vale (adiantamento)</SelectItem>
+                                <SelectItem value="emprestimo">Empréstimo</SelectItem>
+                                <SelectItem value="desconto">Desconto</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <div><Label>Valor</Label><Input type="number" step="0.01" required value={valeForm.valor} onChange={e => setValeForm({ ...valeForm, valor: e.target.value })} /></div>
                           <div><Label>Data</Label><Input type="date" required value={valeForm.data} onChange={e => setValeForm({ ...valeForm, data: e.target.value })} /></div>
                           <div><Label>Descrição</Label><Input value={valeForm.descricao} onChange={e => setValeForm({ ...valeForm, descricao: e.target.value })} /></div>
@@ -745,13 +756,18 @@ export default function Funcionarios() {
                     </Dialog>
                   </div>
                   <div className="space-y-1">
-                    {selVales.length === 0 && <p className="text-xs text-muted-foreground">Nenhum vale.</p>}
+                    {selVales.length === 0 && <p className="text-xs text-muted-foreground">Nenhum lançamento.</p>}
                     {selVales.map(v => (
                       <div key={v.id} className="flex justify-between items-center p-2 rounded bg-secondary/40 text-sm">
                         <div>
-                          <div>{fmtDate(v.data)} {v.descricao && <span className="text-muted-foreground">· {v.descricao}</span>}</div>
+                          <div className="flex items-center gap-2">
+                            {fmtDate(v.data)}
+                            <Badge variant="secondary" className="text-[10px]">{v.tipo || "vale"}</Badge>
+                            {v.descricao && <span className="text-muted-foreground text-xs">· {v.descricao}</span>}
+                          </div>
                           {v.quitado && <Badge variant="secondary" className="text-[10px] mt-0.5">Quitado</Badge>}
                         </div>
+
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">{brl(Number(v.valor))}</span>
                           <Button variant="ghost" size="icon" onClick={() => removeVale(v.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
