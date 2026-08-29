@@ -162,7 +162,10 @@ export default function Funcionarios() {
       endereco: e.endereco || "", data_nascimento: e.data_nascimento || "", data_admissao: e.data_admissao || "",
       cargo: e.cargo || "", setor: e.setor || "Corte", salario: e.salario || "",
       dia_pagamento: e.dia_pagamento || 5, status: e.status || "ativo", observacoes: e.observacoes || "",
+      tipo_pagamento: e.tipo_pagamento || "hora", valor_hora: e.valor_hora ?? "", valor_peca: e.valor_peca ?? "",
+      ciclo: e.ciclo || "quinzenal", ciclo_dia_1: e.ciclo_dia_1 ?? 15, ciclo_dia_2: e.ciclo_dia_2 ?? 30,
     });
+
     setOpen(true);
   };
   const submit = async (ev: React.FormEvent) => {
