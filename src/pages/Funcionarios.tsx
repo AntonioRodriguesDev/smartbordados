@@ -401,7 +401,42 @@ export default function Funcionarios() {
                   </Select>
                 </div>
               </div>
+              <div className="rounded-xl border p-3 space-y-2 bg-secondary/30">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                  <Calculator className="w-3.5 h-3.5" /> Folha por produção
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label>Pagamento por</Label>
+                    <Select value={form.tipo_pagamento} onValueChange={v => setForm({ ...form, tipo_pagamento: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hora">Hora</SelectItem>
+                        <SelectItem value="peca">Peça</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Valor/hora</Label><Input type="number" step="0.01" value={form.valor_hora} onChange={e => setForm({ ...form, valor_hora: e.target.value })} /></div>
+                  <div><Label>Valor/peça</Label><Input type="number" step="0.01" value={form.valor_peca} onChange={e => setForm({ ...form, valor_peca: e.target.value })} /></div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label>Ciclo</Label>
+                    <Select value={form.ciclo} onValueChange={v => setForm({ ...form, ciclo: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quinzenal">Quinzenal</SelectItem>
+                        <SelectItem value="mensal">Mensal</SelectItem>
+                        <SelectItem value="personalizado">Personalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Fecha dia</Label><Input type="number" min={1} max={30} value={form.ciclo_dia_1} disabled={form.ciclo === "mensal"} onChange={e => setForm({ ...form, ciclo_dia_1: e.target.value })} /></div>
+                  <div><Label>e dia</Label><Input type="number" min={2} max={31} value={form.ciclo_dia_2} disabled={form.ciclo === "mensal"} onChange={e => setForm({ ...form, ciclo_dia_2: e.target.value })} /></div>
+                </div>
+              </div>
               <div><Label>Observações</Label><Textarea rows={2} value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} /></div>
+
               <Button type="submit" className="w-full" size="lg">Salvar</Button>
             </form>
           </DialogContent>
