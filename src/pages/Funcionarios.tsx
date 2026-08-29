@@ -42,7 +42,10 @@ const emptyEmp = {
   nome: "", cpf: "", telefone: "", email: "", endereco: "",
   data_nascimento: "", data_admissao: "", cargo: "", setor: "Corte",
   salario: "", dia_pagamento: 5, status: "ativo", observacoes: "",
+  tipo_pagamento: "hora", valor_hora: "", valor_peca: "",
+  ciclo: "quinzenal", ciclo_dia_1: 15, ciclo_dia_2: 30,
 };
+
 
 export default function Funcionarios() {
   const [employees, setEmployees] = useState<any[]>([]);
@@ -57,26 +60,37 @@ export default function Funcionarios() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<any>(emptyEmp);
   const [valeOpen, setValeOpen] = useState(false);
-  const [valeForm, setValeForm] = useState({ valor: "", data: todayISO(), descricao: "" });
+  const [valeForm, setValeForm] = useState({ valor: "", data: todayISO(), descricao: "", tipo: "vale" });
   const [skillOpen, setSkillOpen] = useState(false);
   const [skillForm, setSkillForm] = useState({ nome: "Corte", nivel: 3 });
   const [payOpen, setPayOpen] = useState(false);
   const [payForm, setPayForm] = useState({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
+  const [entries, setEntries] = useState<any[]>([]);
+  const [periods, setPeriods] = useState<any[]>([]);
+  const [refMes, setRefMes] = useState(new Date().toISOString().slice(0, 7));
+  const [periodIdx, setPeriodIdx] = useState(0);
+  const [entryForm, setEntryForm] = useState({ data: todayISO(), quantidade: "", observacao: "" });
+  const [closing, setClosing] = useState(false);
 
   const load = async () => {
-    const [e, s, v, p] = await Promise.all([
+    const [e, s, v, p, en, pp] = await Promise.all([
       supabase.from("employees").select("*").order("nome"),
       supabase.from("employee_skills").select("*"),
       supabase.from("employee_vales").select("*").order("data", { ascending: false }),
       supabase.from("employee_payments").select("*").order("data_pagamento", { ascending: false }),
+      supabase.from("payroll_entries").select("*").order("data", { ascending: false }),
+      supabase.from("payroll_periods").select("*").order("inicio", { ascending: false }),
     ]);
     setEmployees(e.data || []);
     setSkills(s.data || []);
     setVales(v.data || []);
     setPayments(p.data || []);
+    setEntries((en.data as any[]) || []);
+    setPeriods((pp.data as any[]) || []);
     if (!selectedId && e.data && e.data.length > 0) setSelectedId(e.data[0].id);
   };
   useEffect(() => { load(); }, []);
+
 
   const filtered = useMemo(() => employees.filter(e => {
     if (search && !e.nome.toLowerCase().includes(search.toLowerCase())) return false;
@@ -112,6 +126,33 @@ export default function Funcionarios() {
   const selPagoMes = selected ? pagoNoMes(selected.id) : 0;
   const totalReceber = selected ? Math.max(Number(selected.salario || 0) - selPagoMes - valeSaldo(selected.id), 0) : 0;
 
+  // ===== Folha (horas / peças) =====
+  const [refY, refM] = refMes.split("-").map(Number);
+  const selPeriods = selected ? periodsForMonth(selected, refY, refM) : [];
+  const curPeriod = selPeriods[Math.min(periodIdx, Math.max(selPeriods.length - 1, 0))];
+  const selEntries = entries.filter(e =>
+    e.employee_id === selectedId && curPeriod && e.data >= curPeriod.inicio && e.data <= curPeriod.fim
+  ).sort((a, b) => a.data.localeCompare(b.data));
+  const qtdPeriodo = selEntries.reduce((s, e) => s + Number(e.quantidade || 0), 0);
+  const unit = selected ? unitValue(selected) : 0;
+  const brutoPeriodo = qtdPeriodo * unit;
+  const valesPeriodo = selected && curPeriod
+    ? vales.filter(v => v.employee_id === selected.id && v.data >= curPeriod.inicio && v.data <= curPeriod.fim)
+    : [];
+  const descontosPeriodo = valesPeriodo.filter(v => v.tipo === "desconto").reduce((s, v) => s + Number(v.valor), 0);
+  const adiantPeriodo = valesPeriodo.filter(v => v.tipo !== "desconto").reduce((s, v) => s + Number(v.valor), 0);
+  const liquidoPeriodo = brutoPeriodo - descontosPeriodo - adiantPeriodo;
+  const fechamentos = periods.filter(p => p.employee_id === selectedId);
+
+  useEffect(() => {
+    if (selected) {
+      const ps = periodsForMonth(selected, refY, refM);
+      setPeriodIdx(periodIndexFor(ps, todayISO()));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, refMes]);
+
+
   // CRUD
   const openNew = () => { setEditingId(null); setForm(emptyEmp); setOpen(true); };
   const openEdit = (e: any) => {
@@ -121,7 +162,10 @@ export default function Funcionarios() {
       endereco: e.endereco || "", data_nascimento: e.data_nascimento || "", data_admissao: e.data_admissao || "",
       cargo: e.cargo || "", setor: e.setor || "Corte", salario: e.salario || "",
       dia_pagamento: e.dia_pagamento || 5, status: e.status || "ativo", observacoes: e.observacoes || "",
+      tipo_pagamento: e.tipo_pagamento || "hora", valor_hora: e.valor_hora ?? "", valor_peca: e.valor_peca ?? "",
+      ciclo: e.ciclo || "quinzenal", ciclo_dia_1: e.ciclo_dia_1 ?? 15, ciclo_dia_2: e.ciclo_dia_2 ?? 30,
     });
+
     setOpen(true);
   };
   const submit = async (ev: React.FormEvent) => {
@@ -134,7 +178,12 @@ export default function Funcionarios() {
       dia_pagamento: Number(form.dia_pagamento || 5),
       data_nascimento: form.data_nascimento || null,
       data_admissao: form.data_admissao || null,
+      valor_hora: Number(form.valor_hora || 0),
+      valor_peca: Number(form.valor_peca || 0),
+      ciclo_dia_1: Number(form.ciclo_dia_1 || 15),
+      ciclo_dia_2: Number(form.ciclo_dia_2 || 30),
     };
+
     let error;
     if (editingId) ({ error } = await supabase.from("employees").update(payload).eq("id", editingId));
     else ({ error } = await supabase.from("employees").insert({ ...payload, user_id: user.id }));
@@ -148,6 +197,8 @@ export default function Funcionarios() {
     await supabase.from("employee_skills").delete().eq("employee_id", id);
     await supabase.from("employee_vales").delete().eq("employee_id", id);
     await supabase.from("employee_payments").delete().eq("employee_id", id);
+    await supabase.from("payroll_entries").delete().eq("employee_id", id);
+    await supabase.from("payroll_periods").delete().eq("employee_id", id);
     await supabase.from("employees").delete().eq("id", id);
     toast.success("Removido");
     setSelectedId(null);
@@ -160,14 +211,15 @@ export default function Funcionarios() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase.from("employee_vales").insert({
-      user_id: user.id, employee_id: selected.id,
+      user_id: user.id, employee_id: selected.id, tipo: valeForm.tipo,
       valor: Number(valeForm.valor), data: valeForm.data, descricao: valeForm.descricao || null,
     });
     if (error) return toast.error(error.message);
-    toast.success("Vale lançado");
-    setValeOpen(false); setValeForm({ valor: "", data: todayISO(), descricao: "" });
+    toast.success("Lançamento salvo");
+    setValeOpen(false); setValeForm({ valor: "", data: todayISO(), descricao: "", tipo: "vale" });
     load();
   };
+
 
   const removeVale = async (id: string) => {
     await supabase.from("employee_vales").delete().eq("id", id);
@@ -219,6 +271,87 @@ export default function Funcionarios() {
     load();
   };
 
+  // ===== Apontamentos e fechamento de folha =====
+  const addEntry = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!selected) return;
+    const q = Number(String(entryForm.quantidade).replace(",", "."));
+    if (!q || q <= 0) return toast.error("Informe a quantidade");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("payroll_entries").insert({
+      user_id: user.id, employee_id: selected.id, data: entryForm.data,
+      quantidade: q, tipo: selected.tipo_pagamento || "hora", observacao: entryForm.observacao || null,
+    });
+    if (error) return toast.error(error.message);
+    setEntryForm({ data: entryForm.data, quantidade: "", observacao: "" });
+    load();
+  };
+
+  const removeEntry = async (id: string) => {
+    await supabase.from("payroll_entries").delete().eq("id", id);
+    load();
+  };
+
+  const fecharPeriodo = async () => {
+    if (!selected || !curPeriod) return;
+    if (qtdPeriodo <= 0) return toast.error("Sem apontamentos no período");
+    setClosing(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return setClosing(false);
+    const { error } = await supabase.from("payroll_periods").insert({
+      user_id: user.id, employee_id: selected.id,
+      inicio: curPeriod.inicio, fim: curPeriod.fim,
+      tipo: selected.tipo_pagamento || "hora",
+      quantidade: qtdPeriodo, valor_unitario: unit,
+      bruto: brutoPeriodo, descontos: descontosPeriodo,
+      adiantamentos: adiantPeriodo, liquido: liquidoPeriodo, status: "fechado",
+    });
+    setClosing(false);
+    if (error) return toast.error(error.message);
+    toast.success("Período fechado");
+    load();
+  };
+
+  const imprimirPeriodo = () => {
+    if (!selected || !curPeriod) return;
+    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${Number(e.quantidade)}</td><td>${e.observacao || ""}</td></tr>`).join("");
+    const descLinhas = valesPeriodo.map(v => `<tr><td>${fmtDate(v.data)}</td><td>${v.tipo || "vale"}</td><td>${v.descricao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${selected.nome}</title>
+      <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#222}
+      h1{font-size:18px;margin:0}h2{font-size:13px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.05em;color:#666}
+      table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid #ddd;padding:5px 4px;text-align:left}
+      .tot{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
+      .tot.big{font-weight:bold;font-size:15px;border-top:2px solid #333;margin-top:6px;padding-top:8px}
+      .sign{margin-top:56px;border-top:1px solid #333;width:60%;padding-top:6px;font-size:12px}</style></head>
+      <body>
+      <h1>Smart Bordados — Recibo de Pagamento</h1>
+      <div style="font-size:12px;margin-top:6px">
+        <strong>${selected.nome}</strong> · ${selected.cargo || ""} ${selected.setor ? "· " + selected.setor : ""}<br/>
+        Período: ${fmtDate(curPeriod.inicio)} a ${fmtDate(curPeriod.fim)} · Pagamento por ${unitLabel(selected)}
+      </div>
+      <h2>Apontamentos</h2>
+      <table><thead><tr><th>Data</th><th style="text-align:right">${unitLabel(selected)}</th><th>Obs.</th></tr></thead><tbody>${linhas || "<tr><td colspan=3>Sem apontamentos</td></tr>"}</tbody></table>
+      <h2>Descontos, vales e empréstimos</h2>
+      <table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody>${descLinhas || "<tr><td colspan=4>Nenhum</td></tr>"}</tbody></table>
+      <h2>Resumo</h2>
+      <div class="tot"><span>Total de ${unitLabel(selected)}</span><span>${qtdPeriodo}</span></div>
+      <div class="tot"><span>Valor unitário</span><span>${brl(unit)}</span></div>
+      <div class="tot"><span>Bruto</span><span>${brl(brutoPeriodo)}</span></div>
+      <div class="tot"><span>(-) Vales / empréstimos</span><span>${brl(adiantPeriodo)}</span></div>
+      <div class="tot"><span>(-) Descontos</span><span>${brl(descontosPeriodo)}</span></div>
+      <div class="tot big"><span>Líquido a receber</span><span>${brl(liquidoPeriodo)}</span></div>
+      <div class="sign">Assinatura do funcionário</div>
+      </body></html>`;
+    const w = window.open("", "_blank", "width=800,height=900");
+    if (!w) return toast.error("Permita pop-ups para imprimir");
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
+  };
+
+
   return (
     <div className="space-y-6">
       <header className="flex items-start justify-between flex-wrap gap-3">
@@ -268,7 +401,42 @@ export default function Funcionarios() {
                   </Select>
                 </div>
               </div>
+              <div className="rounded-xl border p-3 space-y-2 bg-secondary/30">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                  <Calculator className="w-3.5 h-3.5" /> Folha por produção
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label>Pagamento por</Label>
+                    <Select value={form.tipo_pagamento} onValueChange={v => setForm({ ...form, tipo_pagamento: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hora">Hora</SelectItem>
+                        <SelectItem value="peca">Peça</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Valor/hora</Label><Input type="number" step="0.01" value={form.valor_hora} onChange={e => setForm({ ...form, valor_hora: e.target.value })} /></div>
+                  <div><Label>Valor/peça</Label><Input type="number" step="0.01" value={form.valor_peca} onChange={e => setForm({ ...form, valor_peca: e.target.value })} /></div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label>Ciclo</Label>
+                    <Select value={form.ciclo} onValueChange={v => setForm({ ...form, ciclo: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quinzenal">Quinzenal</SelectItem>
+                        <SelectItem value="mensal">Mensal</SelectItem>
+                        <SelectItem value="personalizado">Personalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Fecha dia</Label><Input type="number" min={1} max={30} value={form.ciclo_dia_1} disabled={form.ciclo === "mensal"} onChange={e => setForm({ ...form, ciclo_dia_1: e.target.value })} /></div>
+                  <div><Label>e dia</Label><Input type="number" min={2} max={31} value={form.ciclo_dia_2} disabled={form.ciclo === "mensal"} onChange={e => setForm({ ...form, ciclo_dia_2: e.target.value })} /></div>
+                </div>
+              </div>
               <div><Label>Observações</Label><Textarea rows={2} value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} /></div>
+
               <Button type="submit" className="w-full" size="lg">Salvar</Button>
             </form>
           </DialogContent>
@@ -387,13 +555,97 @@ export default function Funcionarios() {
                 </Card>
               </div>
 
-              <Tabs defaultValue="dados">
-                <TabsList className="grid grid-cols-4 w-full">
+              <Tabs defaultValue="folha">
+                <TabsList className="grid grid-cols-5 w-full">
+                  <TabsTrigger value="folha">Folha</TabsTrigger>
                   <TabsTrigger value="dados">Dados</TabsTrigger>
                   <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
                   <TabsTrigger value="vales">Vales</TabsTrigger>
-                  <TabsTrigger value="habilidades">Habilidades</TabsTrigger>
+                  <TabsTrigger value="habilidades">Skills</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="folha" className="space-y-3 pt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Mês</Label>
+                      <Input type="month" value={refMes} onChange={e => setRefMes(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Período</Label>
+                      <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {selPeriods.map((p, i) => <SelectItem key={i} value={String(i)}>{p.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <form onSubmit={addEntry} className="flex items-end gap-2 p-2 rounded-lg bg-secondary/40">
+                    <div className="w-36">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Data</Label>
+                      <Input type="date" value={entryForm.data} onChange={e => setEntryForm({ ...entryForm, data: e.target.value })} />
+                    </div>
+                    <div className="w-24">
+                      <Label className="text-[10px] uppercase text-muted-foreground">{unitLabel(selected)}</Label>
+                      <Input type="number" step="0.01" value={entryForm.quantidade} onChange={e => setEntryForm({ ...entryForm, quantidade: e.target.value })} placeholder="0" />
+                    </div>
+                    <div className="flex-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Obs.</Label>
+                      <Input value={entryForm.observacao} onChange={e => setEntryForm({ ...entryForm, observacao: e.target.value })} />
+                    </div>
+                    <Button type="submit" size="icon"><Plus className="w-4 h-4" /></Button>
+                  </form>
+
+                  <div className="space-y-1 max-h-52 overflow-y-auto">
+                    {selEntries.length === 0 && <p className="text-xs text-muted-foreground">Nenhum apontamento neste período.</p>}
+                    {selEntries.map(e => (
+                      <div key={e.id} className="flex justify-between items-center p-2 rounded bg-secondary/30 text-sm">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2"><Clock className="w-3 h-3 text-muted-foreground" /> {fmtDate(e.data)}</div>
+                          {e.observacao && <div className="text-[10px] text-muted-foreground truncate">{e.observacao}</div>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{Number(e.quantidade)} {unitLabel(selected)}</span>
+                          <Button variant="ghost" size="icon" onClick={() => removeEntry(e.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Card className="p-3 space-y-1 text-sm bg-secondary/40 border-0">
+                    <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />
+                    <Row l="Valor unitário" v={brl(unit)} />
+                    <Row l="Bruto" v={brl(brutoPeriodo)} />
+                    <Row l="(-) Vales / empréstimos" v={brl(adiantPeriodo)} />
+                    <Row l="(-) Descontos" v={brl(descontosPeriodo)} />
+                    <div className="flex justify-between pt-2 mt-1 border-t font-bold">
+                      <span>Líquido</span><span className="text-primary">{brl(liquidoPeriodo)}</span>
+                    </div>
+                  </Card>
+
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={fecharPeriodo} disabled={closing} className="flex-1">
+                      <Calculator className="w-4 h-4 mr-1" /> Fechar período
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={imprimirPeriodo} className="flex-1">
+                      <Printer className="w-4 h-4 mr-1" /> Imprimir recibo
+                    </Button>
+                  </div>
+
+                  {fechamentos.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Histórico de fechamentos</div>
+                      {fechamentos.slice(0, 8).map(f => (
+                        <div key={f.id} className="flex justify-between items-center p-2 rounded bg-secondary/30 text-xs">
+                          <span>{fmtDate(f.inicio)} a {fmtDate(f.fim)} · {Number(f.quantidade)} {f.tipo === "peca" ? "peças" : "horas"}</span>
+                          <span className="font-semibold">{brl(Number(f.liquido))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
 
                 <TabsContent value="dados" className="space-y-2 text-sm pt-3">
                   <div className="grid grid-cols-2 gap-3">
@@ -480,10 +732,21 @@ export default function Funcionarios() {
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-muted-foreground">Saldo aberto: <strong className="text-warning">{brl(valeSaldo(selected.id))}</strong></div>
                     <Dialog open={valeOpen} onOpenChange={setValeOpen}>
-                      <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Lançar vale</Button></DialogTrigger>
+                      <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Lançar</Button></DialogTrigger>
                       <DialogContent>
-                        <DialogHeader><DialogTitle>Novo vale</DialogTitle></DialogHeader>
+                        <DialogHeader><DialogTitle>Vale, empréstimo ou desconto</DialogTitle></DialogHeader>
                         <form onSubmit={addVale} className="space-y-3">
+                          <div>
+                            <Label>Tipo</Label>
+                            <Select value={valeForm.tipo} onValueChange={v => setValeForm({ ...valeForm, tipo: v })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="vale">Vale (adiantamento)</SelectItem>
+                                <SelectItem value="emprestimo">Empréstimo</SelectItem>
+                                <SelectItem value="desconto">Desconto</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <div><Label>Valor</Label><Input type="number" step="0.01" required value={valeForm.valor} onChange={e => setValeForm({ ...valeForm, valor: e.target.value })} /></div>
                           <div><Label>Data</Label><Input type="date" required value={valeForm.data} onChange={e => setValeForm({ ...valeForm, data: e.target.value })} /></div>
                           <div><Label>Descrição</Label><Input value={valeForm.descricao} onChange={e => setValeForm({ ...valeForm, descricao: e.target.value })} /></div>
@@ -493,13 +756,18 @@ export default function Funcionarios() {
                     </Dialog>
                   </div>
                   <div className="space-y-1">
-                    {selVales.length === 0 && <p className="text-xs text-muted-foreground">Nenhum vale.</p>}
+                    {selVales.length === 0 && <p className="text-xs text-muted-foreground">Nenhum lançamento.</p>}
                     {selVales.map(v => (
                       <div key={v.id} className="flex justify-between items-center p-2 rounded bg-secondary/40 text-sm">
                         <div>
-                          <div>{fmtDate(v.data)} {v.descricao && <span className="text-muted-foreground">· {v.descricao}</span>}</div>
+                          <div className="flex items-center gap-2">
+                            {fmtDate(v.data)}
+                            <Badge variant="secondary" className="text-[10px]">{v.tipo || "vale"}</Badge>
+                            {v.descricao && <span className="text-muted-foreground text-xs">· {v.descricao}</span>}
+                          </div>
                           {v.quitado && <Badge variant="secondary" className="text-[10px] mt-0.5">Quitado</Badge>}
                         </div>
+
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">{brl(Number(v.valor))}</span>
                           <Button variant="ghost" size="icon" onClick={() => removeVale(v.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
