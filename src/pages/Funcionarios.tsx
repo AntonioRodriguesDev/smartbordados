@@ -126,6 +126,33 @@ export default function Funcionarios() {
   const selPagoMes = selected ? pagoNoMes(selected.id) : 0;
   const totalReceber = selected ? Math.max(Number(selected.salario || 0) - selPagoMes - valeSaldo(selected.id), 0) : 0;
 
+  // ===== Folha (horas / peças) =====
+  const [refY, refM] = refMes.split("-").map(Number);
+  const selPeriods = selected ? periodsForMonth(selected, refY, refM) : [];
+  const curPeriod = selPeriods[Math.min(periodIdx, Math.max(selPeriods.length - 1, 0))];
+  const selEntries = entries.filter(e =>
+    e.employee_id === selectedId && curPeriod && e.data >= curPeriod.inicio && e.data <= curPeriod.fim
+  ).sort((a, b) => a.data.localeCompare(b.data));
+  const qtdPeriodo = selEntries.reduce((s, e) => s + Number(e.quantidade || 0), 0);
+  const unit = selected ? unitValue(selected) : 0;
+  const brutoPeriodo = qtdPeriodo * unit;
+  const valesPeriodo = selected && curPeriod
+    ? vales.filter(v => v.employee_id === selected.id && v.data >= curPeriod.inicio && v.data <= curPeriod.fim)
+    : [];
+  const descontosPeriodo = valesPeriodo.filter(v => v.tipo === "desconto").reduce((s, v) => s + Number(v.valor), 0);
+  const adiantPeriodo = valesPeriodo.filter(v => v.tipo !== "desconto").reduce((s, v) => s + Number(v.valor), 0);
+  const liquidoPeriodo = brutoPeriodo - descontosPeriodo - adiantPeriodo;
+  const fechamentos = periods.filter(p => p.employee_id === selectedId);
+
+  useEffect(() => {
+    if (selected) {
+      const ps = periodsForMonth(selected, refY, refM);
+      setPeriodIdx(periodIndexFor(ps, todayISO()));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, refMes]);
+
+
   // CRUD
   const openNew = () => { setEditingId(null); setForm(emptyEmp); setOpen(true); };
   const openEdit = (e: any) => {
