@@ -60,26 +60,37 @@ export default function Funcionarios() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<any>(emptyEmp);
   const [valeOpen, setValeOpen] = useState(false);
-  const [valeForm, setValeForm] = useState({ valor: "", data: todayISO(), descricao: "" });
+  const [valeForm, setValeForm] = useState({ valor: "", data: todayISO(), descricao: "", tipo: "vale" });
   const [skillOpen, setSkillOpen] = useState(false);
   const [skillForm, setSkillForm] = useState({ nome: "Corte", nivel: 3 });
   const [payOpen, setPayOpen] = useState(false);
   const [payForm, setPayForm] = useState({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
+  const [entries, setEntries] = useState<any[]>([]);
+  const [periods, setPeriods] = useState<any[]>([]);
+  const [refMes, setRefMes] = useState(new Date().toISOString().slice(0, 7));
+  const [periodIdx, setPeriodIdx] = useState(0);
+  const [entryForm, setEntryForm] = useState({ data: todayISO(), quantidade: "", observacao: "" });
+  const [closing, setClosing] = useState(false);
 
   const load = async () => {
-    const [e, s, v, p] = await Promise.all([
+    const [e, s, v, p, en, pp] = await Promise.all([
       supabase.from("employees").select("*").order("nome"),
       supabase.from("employee_skills").select("*"),
       supabase.from("employee_vales").select("*").order("data", { ascending: false }),
       supabase.from("employee_payments").select("*").order("data_pagamento", { ascending: false }),
+      supabase.from("payroll_entries").select("*").order("data", { ascending: false }),
+      supabase.from("payroll_periods").select("*").order("inicio", { ascending: false }),
     ]);
     setEmployees(e.data || []);
     setSkills(s.data || []);
     setVales(v.data || []);
     setPayments(p.data || []);
+    setEntries((en.data as any[]) || []);
+    setPeriods((pp.data as any[]) || []);
     if (!selectedId && e.data && e.data.length > 0) setSelectedId(e.data[0].id);
   };
   useEffect(() => { load(); }, []);
+
 
   const filtered = useMemo(() => employees.filter(e => {
     if (search && !e.nome.toLowerCase().includes(search.toLowerCase())) return false;
