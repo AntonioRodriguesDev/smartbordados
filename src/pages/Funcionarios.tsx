@@ -42,7 +42,10 @@ const emptyEmp = {
   nome: "", cpf: "", telefone: "", email: "", endereco: "",
   data_nascimento: "", data_admissao: "", cargo: "", setor: "Corte",
   salario: "", dia_pagamento: 5, status: "ativo", observacoes: "",
+  tipo_pagamento: "hora", valor_hora: "", valor_peca: "",
+  ciclo: "quinzenal", ciclo_dia_1: 15, ciclo_dia_2: 30,
 };
+
 
 export default function Funcionarios() {
   const [employees, setEmployees] = useState<any[]>([]);
