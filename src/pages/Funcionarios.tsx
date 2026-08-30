@@ -306,7 +306,7 @@ export default function Funcionarios() {
     const { error } = await supabase.from("payroll_periods").insert({
       user_id: user.id, employee_id: selected.id,
       inicio: curPeriod.inicio, fim: curPeriod.fim,
-      tipo: selected.tipo_pagamento || "hora",
+      tipo_pagamento: selected.tipo_pagamento || "hora",
       quantidade: qtdPeriodo, valor_unitario: unit,
       bruto: brutoPeriodo, descontos: descontosPeriodo,
       adiantamentos: adiantPeriodo, liquido: liquidoPeriodo, status: "fechado",
