@@ -133,7 +133,10 @@ export default function Funcionarios() {
   const selEntries = entries.filter(e =>
     e.employee_id === selectedId && curPeriod && e.data >= curPeriod.inicio && e.data <= curPeriod.fim
   ).sort((a, b) => a.data.localeCompare(b.data));
-  const qtdPeriodo = selEntries.reduce((s, e) => s + Number(e.quantidade || 0), 0);
+  const isPeca = selected?.tipo_pagamento === "peca";
+  const qtdOf = (e: any) => Number((isPeca ? e.pecas : e.horas) || 0);
+  const qtdPeriodo = selEntries.reduce((s, e) => s + qtdOf(e), 0);
+
   const unit = selected ? unitValue(selected) : 0;
   const brutoPeriodo = qtdPeriodo * unit;
   const valesPeriodo = selected && curPeriod
