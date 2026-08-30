@@ -133,7 +133,10 @@ export default function Funcionarios() {
   const selEntries = entries.filter(e =>
     e.employee_id === selectedId && curPeriod && e.data >= curPeriod.inicio && e.data <= curPeriod.fim
   ).sort((a, b) => a.data.localeCompare(b.data));
-  const qtdPeriodo = selEntries.reduce((s, e) => s + Number(e.quantidade || 0), 0);
+  const isPeca = selected?.tipo_pagamento === "peca";
+  const qtdOf = (e: any) => Number((isPeca ? e.pecas : e.horas) || 0);
+  const qtdPeriodo = selEntries.reduce((s, e) => s + qtdOf(e), 0);
+
   const unit = selected ? unitValue(selected) : 0;
   const brutoPeriodo = qtdPeriodo * unit;
   const valesPeriodo = selected && curPeriod
@@ -281,8 +284,9 @@ export default function Funcionarios() {
     if (!user) return;
     const { error } = await supabase.from("payroll_entries").insert({
       user_id: user.id, employee_id: selected.id, data: entryForm.data,
-      quantidade: q, tipo: selected.tipo_pagamento || "hora", observacao: entryForm.observacao || null,
+      horas: isPeca ? 0 : q, pecas: isPeca ? q : 0, observacao: entryForm.observacao || null,
     });
+
     if (error) return toast.error(error.message);
     setEntryForm({ data: entryForm.data, quantidade: "", observacao: "" });
     load();
@@ -302,7 +306,7 @@ export default function Funcionarios() {
     const { error } = await supabase.from("payroll_periods").insert({
       user_id: user.id, employee_id: selected.id,
       inicio: curPeriod.inicio, fim: curPeriod.fim,
-      tipo: selected.tipo_pagamento || "hora",
+      tipo_pagamento: selected.tipo_pagamento || "hora",
       quantidade: qtdPeriodo, valor_unitario: unit,
       bruto: brutoPeriodo, descontos: descontosPeriodo,
       adiantamentos: adiantPeriodo, liquido: liquidoPeriodo, status: "fechado",
@@ -315,7 +319,7 @@ export default function Funcionarios() {
 
   const imprimirPeriodo = () => {
     if (!selected || !curPeriod) return;
-    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${Number(e.quantidade)}</td><td>${e.observacao || ""}</td></tr>`).join("");
+    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${qtdOf(e)}</td><td>${e.observacao || ""}</td></tr>`).join("");
     const descLinhas = valesPeriodo.map(v => `<tr><td>${fmtDate(v.data)}</td><td>${v.tipo || "vale"}</td><td>${v.descricao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${selected.nome}</title>
       <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#222}
@@ -606,7 +610,7 @@ export default function Funcionarios() {
                           {e.observacao && <div className="text-[10px] text-muted-foreground truncate">{e.observacao}</div>}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">{Number(e.quantidade)} {unitLabel(selected)}</span>
+                          <span className="font-semibold">{qtdOf(e)} {unitLabel(selected)}</span>
                           <Button variant="ghost" size="icon" onClick={() => removeEntry(e.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
                         </div>
                       </div>
@@ -638,7 +642,7 @@ export default function Funcionarios() {
                       <div className="text-xs text-muted-foreground uppercase tracking-wide">Histórico de fechamentos</div>
                       {fechamentos.slice(0, 8).map(f => (
                         <div key={f.id} className="flex justify-between items-center p-2 rounded bg-secondary/30 text-xs">
-                          <span>{fmtDate(f.inicio)} a {fmtDate(f.fim)} · {Number(f.quantidade)} {f.tipo === "peca" ? "peças" : "horas"}</span>
+                          <span>{fmtDate(f.inicio)} a {fmtDate(f.fim)} · {Number(f.quantidade)} {f.tipo_pagamento === "peca" ? "peças" : "horas"}</span>
                           <span className="font-semibold">{brl(Number(f.liquido))}</span>
                         </div>
                       ))}
@@ -880,6 +884,11 @@ export default function Funcionarios() {
     </div>
   );
 }
+
+function Row({ l, v }: { l: string; v: string }) {
+  return <div className="flex justify-between"><span className="text-muted-foreground">{l}</span><span className="font-medium">{v}</span></div>;
+}
+
 
 function Field({ label, v }: { label: string; v?: string | null }) {
   return (
