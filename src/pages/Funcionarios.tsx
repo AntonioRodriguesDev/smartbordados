@@ -881,6 +881,11 @@ export default function Funcionarios() {
   );
 }
 
+function Row({ l, v }: { l: string; v: string }) {
+  return <div className="flex justify-between"><span className="text-muted-foreground">{l}</span><span className="font-medium">{v}</span></div>;
+}
+
+
 function Field({ label, v }: { label: string; v?: string | null }) {
   return (
     <div>
