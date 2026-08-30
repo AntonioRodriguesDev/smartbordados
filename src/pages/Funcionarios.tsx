@@ -319,7 +319,7 @@ export default function Funcionarios() {
 
   const imprimirPeriodo = () => {
     if (!selected || !curPeriod) return;
-    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${Number(e.quantidade)}</td><td>${e.observacao || ""}</td></tr>`).join("");
+    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${qtdOf(e)}</td><td>${e.observacao || ""}</td></tr>`).join("");
     const descLinhas = valesPeriodo.map(v => `<tr><td>${fmtDate(v.data)}</td><td>${v.tipo || "vale"}</td><td>${v.descricao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${selected.nome}</title>
       <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#222}
@@ -610,7 +610,7 @@ export default function Funcionarios() {
                           {e.observacao && <div className="text-[10px] text-muted-foreground truncate">{e.observacao}</div>}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">{Number(e.quantidade)} {unitLabel(selected)}</span>
+                          <span className="font-semibold">{qtdOf(e)} {unitLabel(selected)}</span>
                           <Button variant="ghost" size="icon" onClick={() => removeEntry(e.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
                         </div>
                       </div>
@@ -642,7 +642,7 @@ export default function Funcionarios() {
                       <div className="text-xs text-muted-foreground uppercase tracking-wide">Histórico de fechamentos</div>
                       {fechamentos.slice(0, 8).map(f => (
                         <div key={f.id} className="flex justify-between items-center p-2 rounded bg-secondary/30 text-xs">
-                          <span>{fmtDate(f.inicio)} a {fmtDate(f.fim)} · {Number(f.quantidade)} {f.tipo === "peca" ? "peças" : "horas"}</span>
+                          <span>{fmtDate(f.inicio)} a {fmtDate(f.fim)} · {Number(f.quantidade)} {f.tipo_pagamento === "peca" ? "peças" : "horas"}</span>
                           <span className="font-semibold">{brl(Number(f.liquido))}</span>
                         </div>
                       ))}
