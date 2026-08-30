@@ -284,8 +284,9 @@ export default function Funcionarios() {
     if (!user) return;
     const { error } = await supabase.from("payroll_entries").insert({
       user_id: user.id, employee_id: selected.id, data: entryForm.data,
-      quantidade: q, tipo: selected.tipo_pagamento || "hora", observacao: entryForm.observacao || null,
+      horas: isPeca ? 0 : q, pecas: isPeca ? q : 0, observacao: entryForm.observacao || null,
     });
+
     if (error) return toast.error(error.message);
     setEntryForm({ data: entryForm.data, quantidade: "", observacao: "" });
     load();
