@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, Target, LogOut, ListChecks, UserCog, DollarSign, Wallet, Tags } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Target, LogOut, ListChecks, UserCog, DollarSign, Wallet, Tags, Handshake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ const items = [
   { to: "/custos", label: "Custos", icon: Wallet },
   { to: "/faturamentos", label: "Lançamentos", icon: ListChecks },
   { to: "/precos", label: "Preços", icon: Tags },
+  { to: "/orcamentos", label: "Orçamentos", icon: Handshake },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/funcionarios", label: "Funcionários", icon: UserCog },
   { to: "/meta", label: "Meta", icon: Target },
