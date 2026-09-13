@@ -139,6 +139,59 @@ export type Database = {
           },
         ]
       }
+      employee_loans: {
+        Row: {
+          created_at: string
+          data_inicio: string
+          descricao: string | null
+          employee_id: string
+          id: string
+          observacao: string | null
+          parcelas: number
+          status: string
+          updated_at: string
+          user_id: string
+          valor_parcela: number
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          data_inicio?: string
+          descricao?: string | null
+          employee_id: string
+          id?: string
+          observacao?: string | null
+          parcelas?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+          valor_parcela?: number
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string
+          data_inicio?: string
+          descricao?: string | null
+          employee_id?: string
+          id?: string
+          observacao?: string | null
+          parcelas?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+          valor_parcela?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_loans_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_payments: {
         Row: {
           created_at: string
@@ -146,6 +199,7 @@ export type Database = {
           employee_id: string
           id: string
           observacao: string | null
+          payroll_period_id: string | null
           tipo: string
           user_id: string
           valor: number
@@ -156,6 +210,7 @@ export type Database = {
           employee_id: string
           id?: string
           observacao?: string | null
+          payroll_period_id?: string | null
           tipo?: string
           user_id: string
           valor: number
@@ -166,6 +221,7 @@ export type Database = {
           employee_id?: string
           id?: string
           observacao?: string | null
+          payroll_period_id?: string | null
           tipo?: string
           user_id?: string
           valor?: number
@@ -206,6 +262,7 @@ export type Database = {
           descricao: string | null
           employee_id: string
           id: string
+          payroll_period_id: string | null
           quitado: boolean
           tipo: string
           user_id: string
@@ -217,6 +274,7 @@ export type Database = {
           descricao?: string | null
           employee_id: string
           id?: string
+          payroll_period_id?: string | null
           quitado?: boolean
           tipo?: string
           user_id: string
@@ -228,6 +286,7 @@ export type Database = {
           descricao?: string | null
           employee_id?: string
           id?: string
+          payroll_period_id?: string | null
           quitado?: boolean
           tipo?: string
           user_id?: string
@@ -258,7 +317,9 @@ export type Database = {
           telefone: string | null
           tipo_pagamento: string
           user_id: string
+          valor_diaria: number
           valor_hora: number
+          valor_mensal: number
           valor_peca: number
         }
         Insert: {
@@ -283,7 +344,9 @@ export type Database = {
           telefone?: string | null
           tipo_pagamento?: string
           user_id: string
+          valor_diaria?: number
           valor_hora?: number
+          valor_mensal?: number
           valor_peca?: number
         }
         Update: {
@@ -308,7 +371,9 @@ export type Database = {
           telefone?: string | null
           tipo_pagamento?: string
           user_id?: string
+          valor_diaria?: number
           valor_hora?: number
+          valor_mensal?: number
           valor_peca?: number
         }
         Relationships: []
@@ -405,10 +470,71 @@ export type Database = {
           },
         ]
       }
+      loan_installments: {
+        Row: {
+          competencia: string
+          created_at: string
+          employee_id: string
+          id: string
+          loan_id: string
+          numero: number
+          pago_em: string | null
+          payroll_period_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          competencia?: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          loan_id: string
+          numero?: number
+          pago_em?: string | null
+          payroll_period_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          loan_id?: string
+          numero?: number
+          pago_em?: string | null
+          payroll_period_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_installments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_installments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "employee_loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_entries: {
         Row: {
           created_at: string
           data: string
+          dias: number
           employee_id: string
           horas: number
           id: string
@@ -416,10 +542,12 @@ export type Database = {
           pecas: number
           updated_at: string
           user_id: string
+          valor_unitario: number
         }
         Insert: {
           created_at?: string
           data?: string
+          dias?: number
           employee_id: string
           horas?: number
           id?: string
@@ -427,10 +555,12 @@ export type Database = {
           pecas?: number
           updated_at?: string
           user_id: string
+          valor_unitario?: number
         }
         Update: {
           created_at?: string
           data?: string
+          dias?: number
           employee_id?: string
           horas?: number
           id?: string
@@ -438,6 +568,7 @@ export type Database = {
           pecas?: number
           updated_at?: string
           user_id?: string
+          valor_unitario?: number
         }
         Relationships: [
           {
@@ -456,6 +587,7 @@ export type Database = {
           created_at: string
           descontos: number
           employee_id: string
+          emprestimos: number
           fim: string
           id: string
           inicio: string
@@ -474,6 +606,7 @@ export type Database = {
           created_at?: string
           descontos?: number
           employee_id: string
+          emprestimos?: number
           fim: string
           id?: string
           inicio: string
@@ -492,6 +625,7 @@ export type Database = {
           created_at?: string
           descontos?: number
           employee_id?: string
+          emprestimos?: number
           fim?: string
           id?: string
           inicio?: string
