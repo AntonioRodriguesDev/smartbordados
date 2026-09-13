@@ -12,6 +12,7 @@ import Funcionarios from "./Funcionarios";
 import Financeiro from "./Financeiro";
 import Custos from "./Custos";
 import Precos from "./Precos";
+import Orcamentos from "./Orcamentos";
 import { supabase } from "@/integrations/supabase/client";
 import { todayISO } from "@/lib/format";
 
@@ -44,6 +45,7 @@ const Index = () => {
         <Route path="financeiro" element={<Financeiro />} />
         <Route path="custos" element={<Custos />} />
         <Route path="precos" element={<Precos />} />
+        <Route path="orcamentos" element={<Orcamentos />} />
       </Routes>
     </AppShell>
   );
