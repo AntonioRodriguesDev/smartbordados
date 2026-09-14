@@ -73,8 +73,12 @@ export default function Funcionarios() {
   const [periods, setPeriods] = useState<any[]>([]);
   const [refMes, setRefMes] = useState(new Date().toISOString().slice(0, 7));
   const [periodIdx, setPeriodIdx] = useState(0);
-  const [entryForm, setEntryForm] = useState({ data: todayISO(), quantidade: "", observacao: "" });
+  const [entryForm, setEntryForm] = useState({ data: todayISO(), quantidade: "", valorUnit: "", observacao: "" });
   const [closing, setClosing] = useState(false);
+  const [loans, setLoans] = useState<any[]>([]);
+  const [parcelas, setParcelas] = useState<any[]>([]);
+  const [loanOpen, setLoanOpen] = useState(false);
+  const [loanForm, setLoanForm] = useState({ valor_total: "", parcelas: "10", data_inicio: todayISO(), descricao: "" });
 
   const load = async () => {
     const [e, s, v, p, en, pp] = await Promise.all([
