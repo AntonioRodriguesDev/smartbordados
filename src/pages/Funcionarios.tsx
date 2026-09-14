@@ -445,7 +445,7 @@ export default function Funcionarios() {
         Período: ${fmtDate(curPeriod.inicio)} a ${fmtDate(curPeriod.fim)} · Pagamento por ${unitLabel(selected)}
       </div>
       <h2>Apontamentos</h2>
-      <table><thead><tr><th>Data</th><th style="text-align:right">${unitLabel(selected)}</th><th>Obs.</th></tr></thead><tbody>${linhas || "<tr><td colspan=3>Sem apontamentos</td></tr>"}</tbody></table>
+      <table><thead><tr><th>Data</th><th style="text-align:right">${unitLabel(selected)}</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th><th>Obs.</th></tr></thead><tbody>${linhas || "<tr><td colspan=5>Sem apontamentos</td></tr>"}</tbody></table>
       <h2>Descontos, vales e empréstimos</h2>
       <table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody>${descLinhas || "<tr><td colspan=4>Nenhum</td></tr>"}</tbody></table>
       <h2>Resumo</h2>
