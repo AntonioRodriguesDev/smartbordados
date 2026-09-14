@@ -521,18 +521,35 @@ export default function Funcionarios() {
                   <Calculator className="w-3.5 h-3.5" /> Folha por produção
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div>
+                  <div className="col-span-3">
                     <Label>Pagamento por</Label>
                     <Select value={form.tipo_pagamento} onValueChange={v => setForm({ ...form, tipo_pagamento: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="hora">Hora</SelectItem>
-                        <SelectItem value="peca">Peça</SelectItem>
+                        {TIPOS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Valor/hora</Label><Input type="number" step="0.01" value={form.valor_hora} onChange={e => setForm({ ...form, valor_hora: e.target.value })} /></div>
-                  <div><Label>Valor/peça</Label><Input type="number" step="0.01" value={form.valor_peca} onChange={e => setForm({ ...form, valor_peca: e.target.value })} /></div>
+                  {form.tipo_pagamento === "hora" && (
+                    <div className="col-span-3"><Label>Valor da hora</Label><Input type="number" step="0.01" value={form.valor_hora} onChange={e => setForm({ ...form, valor_hora: e.target.value })} /></div>
+                  )}
+                  {form.tipo_pagamento === "peca" && (
+                    <div className="col-span-3">
+                      <Label>Valor padrão da peça</Label>
+                      <Input type="number" step="0.01" value={form.valor_peca} onChange={e => setForm({ ...form, valor_peca: e.target.value })} />
+                      <p className="text-[10px] text-muted-foreground mt-1">Pode ser alterado em cada lançamento.</p>
+                    </div>
+                  )}
+                  {form.tipo_pagamento === "diaria" && (
+                    <div className="col-span-3"><Label>Valor da diária</Label><Input type="number" step="0.01" value={form.valor_diaria} onChange={e => setForm({ ...form, valor_diaria: e.target.value })} /></div>
+                  )}
+                  {form.tipo_pagamento === "mensal" && (
+                    <div className="col-span-3">
+                      <Label>Valor mensal fixo</Label>
+                      <Input type="number" step="0.01" value={form.valor_mensal} onChange={e => setForm({ ...form, valor_mensal: e.target.value })} />
+                      <p className="text-[10px] text-muted-foreground mt-1">Dividido automaticamente entre os períodos do mês.</p>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
