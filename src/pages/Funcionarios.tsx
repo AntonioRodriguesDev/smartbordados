@@ -450,9 +450,10 @@ export default function Funcionarios() {
       <table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody>${descLinhas || "<tr><td colspan=4>Nenhum</td></tr>"}</tbody></table>
       <h2>Resumo</h2>
       <div class="tot"><span>Total de ${unitLabel(selected)}</span><span>${qtdPeriodo}</span></div>
-      <div class="tot"><span>Valor unitário</span><span>${brl(unit)}</span></div>
+      <div class="tot"><span>Valor unitário base</span><span>${brl(unit)}</span></div>
       <div class="tot"><span>Bruto</span><span>${brl(brutoPeriodo)}</span></div>
-      <div class="tot"><span>(-) Vales / empréstimos</span><span>${brl(adiantPeriodo)}</span></div>
+      <div class="tot"><span>(-) Vales / adiantamentos</span><span>${brl(adiantPeriodo)}</span></div>
+      <div class="tot"><span>(-) Parcelas de empréstimo</span><span>${brl(emprestimosPeriodo)}</span></div>
       <div class="tot"><span>(-) Descontos</span><span>${brl(descontosPeriodo)}</span></div>
       <div class="tot big"><span>Líquido a receber</span><span>${brl(liquidoPeriodo)}</span></div>
       <div class="sign">Assinatura do funcionário</div>
