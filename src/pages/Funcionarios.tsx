@@ -12,7 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Users, Cake, Wallet, Banknote, Search, Pencil, Trash2, Star, Bell, Clock, Printer, Calculator } from "lucide-react";
 import { brl, fmtDate, todayISO } from "@/lib/format";
-import { periodsForMonth, periodIndexFor, unitValue, unitLabel } from "@/lib/payroll";
+import {
+  periodsForMonth, periodIndexFor, unitValue, unitLabel, unitSingular,
+  tipoOf, usesEntries, entryQty, entryUnit, entryTotal, qtyPayload,
+  brutoPeriodo as calcBruto, buildInstallments, TIPOS,
+} from "@/lib/payroll";
 import { toast } from "sonner";
 
 const SETORES = ["Corte", "Bordado", "Chanfrado", "Separação", "Acabamento", "Revisão", "Administrativo"];
