@@ -213,6 +213,8 @@ export default function Funcionarios() {
       data_admissao: form.data_admissao || null,
       valor_hora: Number(form.valor_hora || 0),
       valor_peca: Number(form.valor_peca || 0),
+      valor_diaria: Number(form.valor_diaria || 0),
+      valor_mensal: Number(form.valor_mensal || 0),
       ciclo_dia_1: Number(form.ciclo_dia_1 || 15),
       ciclo_dia_2: Number(form.ciclo_dia_2 || 30),
     };
