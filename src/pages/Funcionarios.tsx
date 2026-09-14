@@ -334,21 +334,95 @@ export default function Funcionarios() {
 
   const fecharPeriodo = async () => {
     if (!selected || !curPeriod) return;
-    if (qtdPeriodo <= 0) return toast.error("Sem apontamentos no período");
+    if (precisaApontar && qtdPeriodo <= 0) return toast.error("Sem apontamentos no período");
+    if (periodoFechado) return toast.error("Este período já foi fechado");
     setClosing(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return setClosing(false);
-    const { error } = await supabase.from("payroll_periods").insert({
+    const { data: per, error } = await supabase.from("payroll_periods").insert({
       user_id: user.id, employee_id: selected.id,
       inicio: curPeriod.inicio, fim: curPeriod.fim,
-      tipo_pagamento: selected.tipo_pagamento || "hora",
+      tipo_pagamento: tipo,
       quantidade: qtdPeriodo, valor_unitario: unit,
       bruto: brutoPeriodo, descontos: descontosPeriodo,
-      adiantamentos: adiantPeriodo, liquido: liquidoPeriodo, status: "fechado",
-    });
+      adiantamentos: adiantPeriodo, emprestimos: emprestimosPeriodo,
+      liquido: liquidoPeriodo, status: "fechado",
+    }).select("id").single();
+    if (error) { setClosing(false); return toast.error(error.message); }
+
+    const periodId = per?.id as string;
+    // Liga vales/descontos do período ao fechamento e marca como quitados
+    const valeIds = valesPeriodo.map(v => v.id);
+    if (valeIds.length) {
+      await supabase.from("employee_vales")
+        .update({ quitado: true, payroll_period_id: periodId })
+        .in("id", valeIds);
+    }
+    // Baixa as parcelas de empréstimo descontadas
+    const parcIds = parcelasDoPeriodo.map(p => p.id);
+    if (parcIds.length) {
+      await supabase.from("loan_installments")
+        .update({ status: "pago", pago_em: curPeriod.fim, payroll_period_id: periodId })
+        .in("id", parcIds);
+      for (const l of selLoans) {
+        const restantes = selParcelas.filter(p => p.loan_id === l.id && p.status === "pendente" && !parcIds.includes(p.id));
+        if (restantes.length === 0 && l.status !== "quitado") {
+          await supabase.from("employee_loans").update({ status: "quitado" }).eq("id", l.id);
+        }
+      }
+    }
+    // Registra o pagamento líquido no histórico financeiro
+    if (liquidoPeriodo > 0) {
+      await supabase.from("employee_payments").insert({
+        user_id: user.id, employee_id: selected.id, valor: liquidoPeriodo,
+        data_pagamento: curPeriod.fim, tipo: "folha", payroll_period_id: periodId,
+        observacao: `Fechamento ${fmtDate(curPeriod.inicio)} a ${fmtDate(curPeriod.fim)}`,
+      });
+    }
     setClosing(false);
+    toast.success("Período fechado e pagamento registrado");
+    load();
+  };
+
+  // ===== Empréstimos parcelados =====
+  const addLoan = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!selected) return;
+    const total = Number(String(loanForm.valor_total).replace(",", "."));
+    const n = Math.max(1, Math.round(Number(loanForm.parcelas) || 1));
+    if (!total || total <= 0) return toast.error("Informe o valor do empréstimo");
+    const valorParcela = Math.round((total / n) * 100) / 100;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: loan, error } = await supabase.from("employee_loans").insert({
+      user_id: user.id, employee_id: selected.id,
+      valor_total: total, parcelas: n, valor_parcela: valorParcela,
+      data_inicio: loanForm.data_inicio, descricao: loanForm.descricao || null,
+    }).select("id").single();
     if (error) return toast.error(error.message);
-    toast.success("Período fechado");
+    const rows = buildInstallments(loanForm.data_inicio, n, valorParcela).map(p => ({
+      ...p, user_id: user.id, loan_id: loan!.id, employee_id: selected.id,
+    }));
+    const { error: e2 } = await supabase.from("loan_installments").insert(rows);
+    if (e2) return toast.error(e2.message);
+    toast.success(`Empréstimo em ${n}x de ${brl(valorParcela)}`);
+    setLoanOpen(false);
+    setLoanForm({ valor_total: "", parcelas: "10", data_inicio: todayISO(), descricao: "" });
+    load();
+  };
+
+  const removeLoan = async (id: string) => {
+    if (!confirm("Excluir este empréstimo e suas parcelas?")) return;
+    await supabase.from("employee_loans").delete().eq("id", id);
+    load();
+  };
+
+  const toggleParcela = async (p: any) => {
+    const pago = p.status === "pendente";
+    await supabase.from("loan_installments").update({
+      status: pago ? "pago" : "pendente",
+      pago_em: pago ? todayISO() : null,
+    }).eq("id", p.id);
     load();
   };
 
