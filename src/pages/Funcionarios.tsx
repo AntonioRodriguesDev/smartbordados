@@ -145,19 +145,36 @@ export default function Funcionarios() {
   const selEntries = entries.filter(e =>
     e.employee_id === selectedId && curPeriod && e.data >= curPeriod.inicio && e.data <= curPeriod.fim
   ).sort((a, b) => a.data.localeCompare(b.data));
-  const isPeca = selected?.tipo_pagamento === "peca";
-  const qtdOf = (e: any) => Number((isPeca ? e.pecas : e.horas) || 0);
+  const tipo = selected ? tipoOf(selected) : "hora";
+  const precisaApontar = selected ? usesEntries(selected) : true;
+  const qtdOf = (e: any) => (selected ? entryQty(selected, e) : 0);
+  const unitOf = (e: any) => (selected ? entryUnit(selected, e) : 0);
+  const totalOf = (e: any) => (selected ? entryTotal(selected, e) : 0);
   const qtdPeriodo = selEntries.reduce((s, e) => s + qtdOf(e), 0);
 
   const unit = selected ? unitValue(selected) : 0;
-  const brutoPeriodo = qtdPeriodo * unit;
+  const brutoPeriodo = selected ? calcBruto(selected, selEntries, selPeriods.length || 1) : 0;
   const valesPeriodo = selected && curPeriod
     ? vales.filter(v => v.employee_id === selected.id && v.data >= curPeriod.inicio && v.data <= curPeriod.fim)
     : [];
   const descontosPeriodo = valesPeriodo.filter(v => v.tipo === "desconto").reduce((s, v) => s + Number(v.valor), 0);
   const adiantPeriodo = valesPeriodo.filter(v => v.tipo !== "desconto").reduce((s, v) => s + Number(v.valor), 0);
-  const liquidoPeriodo = brutoPeriodo - descontosPeriodo - adiantPeriodo;
+
+  // Empréstimos do funcionário e parcelas a descontar neste período
+  const selLoans = loans.filter(l => l.employee_id === selectedId);
+  const selParcelas = parcelas.filter(p => p.employee_id === selectedId);
+  const parcelasDoPeriodo = curPeriod
+    ? selParcelas.filter(p => p.status === "pendente" && p.competencia <= curPeriod.fim)
+    : [];
+  const emprestimosPeriodo = parcelasDoPeriodo.reduce((s, p) => s + Number(p.valor), 0);
+  const saldoEmprestimos = (id: string) => parcelas
+    .filter(p => p.employee_id === id && p.status === "pendente")
+    .reduce((s, p) => s + Number(p.valor), 0);
+
+  const liquidoPeriodo = brutoPeriodo - descontosPeriodo - adiantPeriodo - emprestimosPeriodo;
   const fechamentos = periods.filter(p => p.employee_id === selectedId);
+  const periodoFechado = !!(selected && curPeriod && fechamentos.some(f => f.inicio === curPeriod.inicio && f.fim === curPeriod.fim));
+  const totalReceber = selected ? Math.max(liquidoPeriodo, 0) : 0;
 
   useEffect(() => {
     if (selected) {
