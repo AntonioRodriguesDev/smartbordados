@@ -195,6 +195,7 @@ export default function Funcionarios() {
       cargo: e.cargo || "", setor: e.setor || "Corte", salario: e.salario || "",
       dia_pagamento: e.dia_pagamento || 5, status: e.status || "ativo", observacoes: e.observacoes || "",
       tipo_pagamento: e.tipo_pagamento || "hora", valor_hora: e.valor_hora ?? "", valor_peca: e.valor_peca ?? "",
+      valor_diaria: e.valor_diaria ?? "", valor_mensal: e.valor_mensal ?? "",
       ciclo: e.ciclo || "quinzenal", ciclo_dia_1: e.ciclo_dia_1 ?? 15, ciclo_dia_2: e.ciclo_dia_2 ?? 30,
     });
 
