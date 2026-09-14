@@ -714,47 +714,63 @@ export default function Funcionarios() {
                     </div>
                   </div>
 
-                  <form onSubmit={addEntry} className="flex items-end gap-2 p-2 rounded-lg bg-secondary/40">
-                    <div className="w-36">
-                      <Label className="text-[10px] uppercase text-muted-foreground">Data</Label>
-                      <Input type="date" value={entryForm.data} onChange={e => setEntryForm({ ...entryForm, data: e.target.value })} />
+                  {precisaApontar ? (
+                    <form onSubmit={addEntry} className="flex items-end gap-2 p-2 rounded-lg bg-secondary/40">
+                      <div className="w-32">
+                        <Label className="text-[10px] uppercase text-muted-foreground">Data</Label>
+                        <Input type="date" value={entryForm.data} onChange={e => setEntryForm({ ...entryForm, data: e.target.value })} />
+                      </div>
+                      <div className="w-20">
+                        <Label className="text-[10px] uppercase text-muted-foreground">{unitLabel(selected)}</Label>
+                        <Input type="number" step="0.01" value={entryForm.quantidade} onChange={e => setEntryForm({ ...entryForm, quantidade: e.target.value })} placeholder="0" />
+                      </div>
+                      <div className="w-24">
+                        <Label className="text-[10px] uppercase text-muted-foreground">R$/{unitSingular(selected)}</Label>
+                        <Input type="number" step="0.01" value={entryForm.valorUnit} onChange={e => setEntryForm({ ...entryForm, valorUnit: e.target.value })} placeholder={String(unit || 0)} />
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-[10px] uppercase text-muted-foreground">Obs.</Label>
+                        <Input value={entryForm.observacao} onChange={e => setEntryForm({ ...entryForm, observacao: e.target.value })} />
+                      </div>
+                      <Button type="submit" size="icon"><Plus className="w-4 h-4" /></Button>
+                    </form>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-secondary/40 text-xs text-muted-foreground">
+                      Pagamento mensal fixo de <strong>{brl(unitValue(selected))}</strong> — não precisa apontar horas ou peças.
                     </div>
-                    <div className="w-24">
-                      <Label className="text-[10px] uppercase text-muted-foreground">{unitLabel(selected)}</Label>
-                      <Input type="number" step="0.01" value={entryForm.quantidade} onChange={e => setEntryForm({ ...entryForm, quantidade: e.target.value })} placeholder="0" />
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-[10px] uppercase text-muted-foreground">Obs.</Label>
-                      <Input value={entryForm.observacao} onChange={e => setEntryForm({ ...entryForm, observacao: e.target.value })} />
-                    </div>
-                    <Button type="submit" size="icon"><Plus className="w-4 h-4" /></Button>
-                  </form>
+                  )}
 
+                  {precisaApontar && (
                   <div className="space-y-1 max-h-52 overflow-y-auto">
                     {selEntries.length === 0 && <p className="text-xs text-muted-foreground">Nenhum apontamento neste período.</p>}
                     {selEntries.map(e => (
                       <div key={e.id} className="flex justify-between items-center p-2 rounded bg-secondary/30 text-sm">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2"><Clock className="w-3 h-3 text-muted-foreground" /> {fmtDate(e.data)}</div>
-                          {e.observacao && <div className="text-[10px] text-muted-foreground truncate">{e.observacao}</div>}
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {qtdOf(e)} × {brl(unitOf(e))}{e.observacao ? ` · ${e.observacao}` : ""}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">{qtdOf(e)} {unitLabel(selected)}</span>
+                          <span className="font-semibold">{brl(totalOf(e))}</span>
                           <Button variant="ghost" size="icon" onClick={() => removeEntry(e.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
                         </div>
                       </div>
                     ))}
                   </div>
+                  )}
 
                   <Card className="p-3 space-y-1 text-sm bg-secondary/40 border-0">
-                    <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />
-                    <Row l="Valor unitário" v={brl(unit)} />
+                    {precisaApontar && <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />}
+                    {precisaApontar && <Row l={`Valor base por ${unitSingular(selected)}`} v={brl(unit)} />}
                     <Row l="Bruto" v={brl(brutoPeriodo)} />
-                    <Row l="(-) Vales / empréstimos" v={brl(adiantPeriodo)} />
+                    <Row l="(-) Vales / adiantamentos" v={brl(adiantPeriodo)} />
+                    <Row l={`(-) Empréstimos (${parcelasDoPeriodo.length} parcela(s))`} v={brl(emprestimosPeriodo)} />
                     <Row l="(-) Descontos" v={brl(descontosPeriodo)} />
                     <div className="flex justify-between pt-2 mt-1 border-t font-bold">
                       <span>Líquido</span><span className="text-primary">{brl(liquidoPeriodo)}</span>
                     </div>
+                    {periodoFechado && <div className="text-[10px] text-success pt-1">Período já fechado e pago.</div>}
                   </Card>
 
                   <div className="flex gap-2">
