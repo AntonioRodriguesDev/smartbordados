@@ -46,7 +46,7 @@ const emptyEmp = {
   nome: "", cpf: "", telefone: "", email: "", endereco: "",
   data_nascimento: "", data_admissao: "", cargo: "", setor: "Corte",
   salario: "", dia_pagamento: 5, status: "ativo", observacoes: "",
-  tipo_pagamento: "hora", valor_hora: "", valor_peca: "",
+  tipo_pagamento: "hora", valor_hora: "", valor_peca: "", valor_diaria: "", valor_mensal: "",
   ciclo: "quinzenal", ciclo_dia_1: 15, ciclo_dia_2: 30,
 };
 
