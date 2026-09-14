@@ -12,7 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Users, Cake, Wallet, Banknote, Search, Pencil, Trash2, Star, Bell, Clock, Printer, Calculator } from "lucide-react";
 import { brl, fmtDate, todayISO } from "@/lib/format";
-import { periodsForMonth, periodIndexFor, unitValue, unitLabel } from "@/lib/payroll";
+import {
+  periodsForMonth, periodIndexFor, unitValue, unitLabel, unitSingular,
+  tipoOf, usesEntries, entryQty, entryUnit, entryTotal, qtyPayload,
+  brutoPeriodo as calcBruto, buildInstallments, TIPOS,
+} from "@/lib/payroll";
 import { toast } from "sonner";
 
 const SETORES = ["Corte", "Bordado", "Chanfrado", "Separação", "Acabamento", "Revisão", "Administrativo"];
@@ -42,7 +46,7 @@ const emptyEmp = {
   nome: "", cpf: "", telefone: "", email: "", endereco: "",
   data_nascimento: "", data_admissao: "", cargo: "", setor: "Corte",
   salario: "", dia_pagamento: 5, status: "ativo", observacoes: "",
-  tipo_pagamento: "hora", valor_hora: "", valor_peca: "",
+  tipo_pagamento: "hora", valor_hora: "", valor_peca: "", valor_diaria: "", valor_mensal: "",
   ciclo: "quinzenal", ciclo_dia_1: 15, ciclo_dia_2: 30,
 };
 
@@ -69,17 +73,23 @@ export default function Funcionarios() {
   const [periods, setPeriods] = useState<any[]>([]);
   const [refMes, setRefMes] = useState(new Date().toISOString().slice(0, 7));
   const [periodIdx, setPeriodIdx] = useState(0);
-  const [entryForm, setEntryForm] = useState({ data: todayISO(), quantidade: "", observacao: "" });
+  const [entryForm, setEntryForm] = useState({ data: todayISO(), quantidade: "", valorUnit: "", observacao: "" });
   const [closing, setClosing] = useState(false);
+  const [loans, setLoans] = useState<any[]>([]);
+  const [parcelas, setParcelas] = useState<any[]>([]);
+  const [loanOpen, setLoanOpen] = useState(false);
+  const [loanForm, setLoanForm] = useState({ valor_total: "", parcelas: "10", data_inicio: todayISO(), descricao: "" });
 
   const load = async () => {
-    const [e, s, v, p, en, pp] = await Promise.all([
+    const [e, s, v, p, en, pp, lo, li] = await Promise.all([
       supabase.from("employees").select("*").order("nome"),
       supabase.from("employee_skills").select("*"),
       supabase.from("employee_vales").select("*").order("data", { ascending: false }),
       supabase.from("employee_payments").select("*").order("data_pagamento", { ascending: false }),
       supabase.from("payroll_entries").select("*").order("data", { ascending: false }),
       supabase.from("payroll_periods").select("*").order("inicio", { ascending: false }),
+      supabase.from("employee_loans").select("*").order("data_inicio", { ascending: false }),
+      supabase.from("loan_installments").select("*").order("competencia"),
     ]);
     setEmployees(e.data || []);
     setSkills(s.data || []);
@@ -87,6 +97,8 @@ export default function Funcionarios() {
     setPayments(p.data || []);
     setEntries((en.data as any[]) || []);
     setPeriods((pp.data as any[]) || []);
+    setLoans((lo.data as any[]) || []);
+    setParcelas((li.data as any[]) || []);
     if (!selectedId && e.data && e.data.length > 0) setSelectedId(e.data[0].id);
   };
   useEffect(() => { load(); }, []);
@@ -124,7 +136,7 @@ export default function Funcionarios() {
   const valeSaldo = (id: string) => vales.filter(v => v.employee_id === id && !v.quitado).reduce((s, v) => s + Number(v.valor), 0);
   const pagoNoMes = (id: string) => payments.filter(p => p.employee_id === id && p.data_pagamento?.startsWith(mesAtual)).reduce((s, p) => s + Number(p.valor), 0);
   const selPagoMes = selected ? pagoNoMes(selected.id) : 0;
-  const totalReceber = selected ? Math.max(Number(selected.salario || 0) - selPagoMes - valeSaldo(selected.id), 0) : 0;
+  
 
   // ===== Folha (horas / peças) =====
   const [refY, refM] = refMes.split("-").map(Number);
@@ -133,19 +145,36 @@ export default function Funcionarios() {
   const selEntries = entries.filter(e =>
     e.employee_id === selectedId && curPeriod && e.data >= curPeriod.inicio && e.data <= curPeriod.fim
   ).sort((a, b) => a.data.localeCompare(b.data));
-  const isPeca = selected?.tipo_pagamento === "peca";
-  const qtdOf = (e: any) => Number((isPeca ? e.pecas : e.horas) || 0);
+  const tipo = selected ? tipoOf(selected) : "hora";
+  const precisaApontar = selected ? usesEntries(selected) : true;
+  const qtdOf = (e: any) => (selected ? entryQty(selected, e) : 0);
+  const unitOf = (e: any) => (selected ? entryUnit(selected, e) : 0);
+  const totalOf = (e: any) => (selected ? entryTotal(selected, e) : 0);
   const qtdPeriodo = selEntries.reduce((s, e) => s + qtdOf(e), 0);
 
   const unit = selected ? unitValue(selected) : 0;
-  const brutoPeriodo = qtdPeriodo * unit;
+  const brutoPeriodo = selected ? calcBruto(selected, selEntries, selPeriods.length || 1) : 0;
   const valesPeriodo = selected && curPeriod
     ? vales.filter(v => v.employee_id === selected.id && v.data >= curPeriod.inicio && v.data <= curPeriod.fim)
     : [];
   const descontosPeriodo = valesPeriodo.filter(v => v.tipo === "desconto").reduce((s, v) => s + Number(v.valor), 0);
   const adiantPeriodo = valesPeriodo.filter(v => v.tipo !== "desconto").reduce((s, v) => s + Number(v.valor), 0);
-  const liquidoPeriodo = brutoPeriodo - descontosPeriodo - adiantPeriodo;
+
+  // Empréstimos do funcionário e parcelas a descontar neste período
+  const selLoans = loans.filter(l => l.employee_id === selectedId);
+  const selParcelas = parcelas.filter(p => p.employee_id === selectedId);
+  const parcelasDoPeriodo = curPeriod
+    ? selParcelas.filter(p => p.status === "pendente" && p.competencia <= curPeriod.fim)
+    : [];
+  const emprestimosPeriodo = parcelasDoPeriodo.reduce((s, p) => s + Number(p.valor), 0);
+  const saldoEmprestimos = (id: string) => parcelas
+    .filter(p => p.employee_id === id && p.status === "pendente")
+    .reduce((s, p) => s + Number(p.valor), 0);
+
+  const liquidoPeriodo = brutoPeriodo - descontosPeriodo - adiantPeriodo - emprestimosPeriodo;
   const fechamentos = periods.filter(p => p.employee_id === selectedId);
+  const periodoFechado = !!(selected && curPeriod && fechamentos.some(f => f.inicio === curPeriod.inicio && f.fim === curPeriod.fim));
+  const totalReceber = selected ? Math.max(liquidoPeriodo, 0) : 0;
 
   useEffect(() => {
     if (selected) {
@@ -166,6 +195,7 @@ export default function Funcionarios() {
       cargo: e.cargo || "", setor: e.setor || "Corte", salario: e.salario || "",
       dia_pagamento: e.dia_pagamento || 5, status: e.status || "ativo", observacoes: e.observacoes || "",
       tipo_pagamento: e.tipo_pagamento || "hora", valor_hora: e.valor_hora ?? "", valor_peca: e.valor_peca ?? "",
+      valor_diaria: e.valor_diaria ?? "", valor_mensal: e.valor_mensal ?? "",
       ciclo: e.ciclo || "quinzenal", ciclo_dia_1: e.ciclo_dia_1 ?? 15, ciclo_dia_2: e.ciclo_dia_2 ?? 30,
     });
 
@@ -183,6 +213,8 @@ export default function Funcionarios() {
       data_admissao: form.data_admissao || null,
       valor_hora: Number(form.valor_hora || 0),
       valor_peca: Number(form.valor_peca || 0),
+      valor_diaria: Number(form.valor_diaria || 0),
+      valor_mensal: Number(form.valor_mensal || 0),
       ciclo_dia_1: Number(form.ciclo_dia_1 || 15),
       ciclo_dia_2: Number(form.ciclo_dia_2 || 30),
     };
@@ -280,15 +312,18 @@ export default function Funcionarios() {
     if (!selected) return;
     const q = Number(String(entryForm.quantidade).replace(",", "."));
     if (!q || q <= 0) return toast.error("Informe a quantidade");
+    const vu = Number(String(entryForm.valorUnit).replace(",", ".")) || 0;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase.from("payroll_entries").insert({
       user_id: user.id, employee_id: selected.id, data: entryForm.data,
-      horas: isPeca ? 0 : q, pecas: isPeca ? q : 0, observacao: entryForm.observacao || null,
+      ...qtyPayload(selected, q),
+      valor_unitario: vu > 0 ? vu : unit,
+      observacao: entryForm.observacao || null,
     });
 
     if (error) return toast.error(error.message);
-    setEntryForm({ data: entryForm.data, quantidade: "", observacao: "" });
+    setEntryForm({ data: entryForm.data, quantidade: "", valorUnit: entryForm.valorUnit, observacao: "" });
     load();
   };
 
@@ -299,28 +334,103 @@ export default function Funcionarios() {
 
   const fecharPeriodo = async () => {
     if (!selected || !curPeriod) return;
-    if (qtdPeriodo <= 0) return toast.error("Sem apontamentos no período");
+    if (precisaApontar && qtdPeriodo <= 0) return toast.error("Sem apontamentos no período");
+    if (periodoFechado) return toast.error("Este período já foi fechado");
     setClosing(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return setClosing(false);
-    const { error } = await supabase.from("payroll_periods").insert({
+    const { data: per, error } = await supabase.from("payroll_periods").insert({
       user_id: user.id, employee_id: selected.id,
       inicio: curPeriod.inicio, fim: curPeriod.fim,
-      tipo_pagamento: selected.tipo_pagamento || "hora",
+      tipo_pagamento: tipo,
       quantidade: qtdPeriodo, valor_unitario: unit,
       bruto: brutoPeriodo, descontos: descontosPeriodo,
-      adiantamentos: adiantPeriodo, liquido: liquidoPeriodo, status: "fechado",
-    });
+      adiantamentos: adiantPeriodo, emprestimos: emprestimosPeriodo,
+      liquido: liquidoPeriodo, status: "fechado",
+    }).select("id").single();
+    if (error) { setClosing(false); return toast.error(error.message); }
+
+    const periodId = per?.id as string;
+    // Liga vales/descontos do período ao fechamento e marca como quitados
+    const valeIds = valesPeriodo.map(v => v.id);
+    if (valeIds.length) {
+      await supabase.from("employee_vales")
+        .update({ quitado: true, payroll_period_id: periodId })
+        .in("id", valeIds);
+    }
+    // Baixa as parcelas de empréstimo descontadas
+    const parcIds = parcelasDoPeriodo.map(p => p.id);
+    if (parcIds.length) {
+      await supabase.from("loan_installments")
+        .update({ status: "pago", pago_em: curPeriod.fim, payroll_period_id: periodId })
+        .in("id", parcIds);
+      for (const l of selLoans) {
+        const restantes = selParcelas.filter(p => p.loan_id === l.id && p.status === "pendente" && !parcIds.includes(p.id));
+        if (restantes.length === 0 && l.status !== "quitado") {
+          await supabase.from("employee_loans").update({ status: "quitado" }).eq("id", l.id);
+        }
+      }
+    }
+    // Registra o pagamento líquido no histórico financeiro
+    if (liquidoPeriodo > 0) {
+      await supabase.from("employee_payments").insert({
+        user_id: user.id, employee_id: selected.id, valor: liquidoPeriodo,
+        data_pagamento: curPeriod.fim, tipo: "folha", payroll_period_id: periodId,
+        observacao: `Fechamento ${fmtDate(curPeriod.inicio)} a ${fmtDate(curPeriod.fim)}`,
+      });
+    }
     setClosing(false);
+    toast.success("Período fechado e pagamento registrado");
+    load();
+  };
+
+  // ===== Empréstimos parcelados =====
+  const addLoan = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!selected) return;
+    const total = Number(String(loanForm.valor_total).replace(",", "."));
+    const n = Math.max(1, Math.round(Number(loanForm.parcelas) || 1));
+    if (!total || total <= 0) return toast.error("Informe o valor do empréstimo");
+    const valorParcela = Math.round((total / n) * 100) / 100;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: loan, error } = await supabase.from("employee_loans").insert({
+      user_id: user.id, employee_id: selected.id,
+      valor_total: total, parcelas: n, valor_parcela: valorParcela,
+      data_inicio: loanForm.data_inicio, descricao: loanForm.descricao || null,
+    }).select("id").single();
     if (error) return toast.error(error.message);
-    toast.success("Período fechado");
+    const rows = buildInstallments(loanForm.data_inicio, n, valorParcela).map(p => ({
+      ...p, user_id: user.id, loan_id: loan!.id, employee_id: selected.id,
+    }));
+    const { error: e2 } = await supabase.from("loan_installments").insert(rows);
+    if (e2) return toast.error(e2.message);
+    toast.success(`Empréstimo em ${n}x de ${brl(valorParcela)}`);
+    setLoanOpen(false);
+    setLoanForm({ valor_total: "", parcelas: "10", data_inicio: todayISO(), descricao: "" });
+    load();
+  };
+
+  const removeLoan = async (id: string) => {
+    if (!confirm("Excluir este empréstimo e suas parcelas?")) return;
+    await supabase.from("employee_loans").delete().eq("id", id);
+    load();
+  };
+
+  const toggleParcela = async (p: any) => {
+    const pago = p.status === "pendente";
+    await supabase.from("loan_installments").update({
+      status: pago ? "pago" : "pendente",
+      pago_em: pago ? todayISO() : null,
+    }).eq("id", p.id);
     load();
   };
 
   const imprimirPeriodo = () => {
     if (!selected || !curPeriod) return;
-    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${qtdOf(e)}</td><td>${e.observacao || ""}</td></tr>`).join("");
-    const descLinhas = valesPeriodo.map(v => `<tr><td>${fmtDate(v.data)}</td><td>${v.tipo || "vale"}</td><td>${v.descricao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("");
+    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${qtdOf(e)}</td><td style="text-align:right">${brl(unitOf(e))}</td><td style="text-align:right">${brl(totalOf(e))}</td><td>${e.observacao || ""}</td></tr>`).join("");
+    const descLinhas = valesPeriodo.map(v => `<tr><td>${fmtDate(v.data)}</td><td>${v.tipo || "vale"}</td><td>${v.descricao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("")
+      + parcelasDoPeriodo.map(p => `<tr><td>${fmtDate(p.competencia)}</td><td>empréstimo</td><td>Parcela ${p.numero}</td><td style="text-align:right">${brl(Number(p.valor))}</td></tr>`).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${selected.nome}</title>
       <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#222}
       h1{font-size:18px;margin:0}h2{font-size:13px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.05em;color:#666}
@@ -335,14 +445,15 @@ export default function Funcionarios() {
         Período: ${fmtDate(curPeriod.inicio)} a ${fmtDate(curPeriod.fim)} · Pagamento por ${unitLabel(selected)}
       </div>
       <h2>Apontamentos</h2>
-      <table><thead><tr><th>Data</th><th style="text-align:right">${unitLabel(selected)}</th><th>Obs.</th></tr></thead><tbody>${linhas || "<tr><td colspan=3>Sem apontamentos</td></tr>"}</tbody></table>
+      <table><thead><tr><th>Data</th><th style="text-align:right">${unitLabel(selected)}</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th><th>Obs.</th></tr></thead><tbody>${linhas || "<tr><td colspan=5>Sem apontamentos</td></tr>"}</tbody></table>
       <h2>Descontos, vales e empréstimos</h2>
       <table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody>${descLinhas || "<tr><td colspan=4>Nenhum</td></tr>"}</tbody></table>
       <h2>Resumo</h2>
       <div class="tot"><span>Total de ${unitLabel(selected)}</span><span>${qtdPeriodo}</span></div>
-      <div class="tot"><span>Valor unitário</span><span>${brl(unit)}</span></div>
+      <div class="tot"><span>Valor unitário base</span><span>${brl(unit)}</span></div>
       <div class="tot"><span>Bruto</span><span>${brl(brutoPeriodo)}</span></div>
-      <div class="tot"><span>(-) Vales / empréstimos</span><span>${brl(adiantPeriodo)}</span></div>
+      <div class="tot"><span>(-) Vales / adiantamentos</span><span>${brl(adiantPeriodo)}</span></div>
+      <div class="tot"><span>(-) Parcelas de empréstimo</span><span>${brl(emprestimosPeriodo)}</span></div>
       <div class="tot"><span>(-) Descontos</span><span>${brl(descontosPeriodo)}</span></div>
       <div class="tot big"><span>Líquido a receber</span><span>${brl(liquidoPeriodo)}</span></div>
       <div class="sign">Assinatura do funcionário</div>
@@ -410,18 +521,35 @@ export default function Funcionarios() {
                   <Calculator className="w-3.5 h-3.5" /> Folha por produção
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div>
+                  <div className="col-span-3">
                     <Label>Pagamento por</Label>
                     <Select value={form.tipo_pagamento} onValueChange={v => setForm({ ...form, tipo_pagamento: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="hora">Hora</SelectItem>
-                        <SelectItem value="peca">Peça</SelectItem>
+                        {TIPOS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Valor/hora</Label><Input type="number" step="0.01" value={form.valor_hora} onChange={e => setForm({ ...form, valor_hora: e.target.value })} /></div>
-                  <div><Label>Valor/peça</Label><Input type="number" step="0.01" value={form.valor_peca} onChange={e => setForm({ ...form, valor_peca: e.target.value })} /></div>
+                  {form.tipo_pagamento === "hora" && (
+                    <div className="col-span-3"><Label>Valor da hora</Label><Input type="number" step="0.01" value={form.valor_hora} onChange={e => setForm({ ...form, valor_hora: e.target.value })} /></div>
+                  )}
+                  {form.tipo_pagamento === "peca" && (
+                    <div className="col-span-3">
+                      <Label>Valor padrão da peça</Label>
+                      <Input type="number" step="0.01" value={form.valor_peca} onChange={e => setForm({ ...form, valor_peca: e.target.value })} />
+                      <p className="text-[10px] text-muted-foreground mt-1">Pode ser alterado em cada lançamento.</p>
+                    </div>
+                  )}
+                  {form.tipo_pagamento === "diaria" && (
+                    <div className="col-span-3"><Label>Valor da diária</Label><Input type="number" step="0.01" value={form.valor_diaria} onChange={e => setForm({ ...form, valor_diaria: e.target.value })} /></div>
+                  )}
+                  {form.tipo_pagamento === "mensal" && (
+                    <div className="col-span-3">
+                      <Label>Valor mensal fixo</Label>
+                      <Input type="number" step="0.01" value={form.valor_mensal} onChange={e => setForm({ ...form, valor_mensal: e.target.value })} />
+                      <p className="text-[10px] text-muted-foreground mt-1">Dividido automaticamente entre os períodos do mês.</p>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
@@ -560,11 +688,12 @@ export default function Funcionarios() {
               </div>
 
               <Tabs defaultValue="folha">
-                <TabsList className="grid grid-cols-5 w-full">
+                <TabsList className="grid grid-cols-6 w-full">
                   <TabsTrigger value="folha">Folha</TabsTrigger>
                   <TabsTrigger value="dados">Dados</TabsTrigger>
-                  <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
+                  <TabsTrigger value="pagamento">Pagos</TabsTrigger>
                   <TabsTrigger value="vales">Vales</TabsTrigger>
+                  <TabsTrigger value="emprestimos">Empr.</TabsTrigger>
                   <TabsTrigger value="habilidades">Skills</TabsTrigger>
                 </TabsList>
 
@@ -585,47 +714,63 @@ export default function Funcionarios() {
                     </div>
                   </div>
 
-                  <form onSubmit={addEntry} className="flex items-end gap-2 p-2 rounded-lg bg-secondary/40">
-                    <div className="w-36">
-                      <Label className="text-[10px] uppercase text-muted-foreground">Data</Label>
-                      <Input type="date" value={entryForm.data} onChange={e => setEntryForm({ ...entryForm, data: e.target.value })} />
+                  {precisaApontar ? (
+                    <form onSubmit={addEntry} className="flex items-end gap-2 p-2 rounded-lg bg-secondary/40">
+                      <div className="w-32">
+                        <Label className="text-[10px] uppercase text-muted-foreground">Data</Label>
+                        <Input type="date" value={entryForm.data} onChange={e => setEntryForm({ ...entryForm, data: e.target.value })} />
+                      </div>
+                      <div className="w-20">
+                        <Label className="text-[10px] uppercase text-muted-foreground">{unitLabel(selected)}</Label>
+                        <Input type="number" step="0.01" value={entryForm.quantidade} onChange={e => setEntryForm({ ...entryForm, quantidade: e.target.value })} placeholder="0" />
+                      </div>
+                      <div className="w-24">
+                        <Label className="text-[10px] uppercase text-muted-foreground">R$/{unitSingular(selected)}</Label>
+                        <Input type="number" step="0.01" value={entryForm.valorUnit} onChange={e => setEntryForm({ ...entryForm, valorUnit: e.target.value })} placeholder={String(unit || 0)} />
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-[10px] uppercase text-muted-foreground">Obs.</Label>
+                        <Input value={entryForm.observacao} onChange={e => setEntryForm({ ...entryForm, observacao: e.target.value })} />
+                      </div>
+                      <Button type="submit" size="icon"><Plus className="w-4 h-4" /></Button>
+                    </form>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-secondary/40 text-xs text-muted-foreground">
+                      Pagamento mensal fixo de <strong>{brl(unitValue(selected))}</strong> — não precisa apontar horas ou peças.
                     </div>
-                    <div className="w-24">
-                      <Label className="text-[10px] uppercase text-muted-foreground">{unitLabel(selected)}</Label>
-                      <Input type="number" step="0.01" value={entryForm.quantidade} onChange={e => setEntryForm({ ...entryForm, quantidade: e.target.value })} placeholder="0" />
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-[10px] uppercase text-muted-foreground">Obs.</Label>
-                      <Input value={entryForm.observacao} onChange={e => setEntryForm({ ...entryForm, observacao: e.target.value })} />
-                    </div>
-                    <Button type="submit" size="icon"><Plus className="w-4 h-4" /></Button>
-                  </form>
+                  )}
 
+                  {precisaApontar && (
                   <div className="space-y-1 max-h-52 overflow-y-auto">
                     {selEntries.length === 0 && <p className="text-xs text-muted-foreground">Nenhum apontamento neste período.</p>}
                     {selEntries.map(e => (
                       <div key={e.id} className="flex justify-between items-center p-2 rounded bg-secondary/30 text-sm">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2"><Clock className="w-3 h-3 text-muted-foreground" /> {fmtDate(e.data)}</div>
-                          {e.observacao && <div className="text-[10px] text-muted-foreground truncate">{e.observacao}</div>}
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {qtdOf(e)} × {brl(unitOf(e))}{e.observacao ? ` · ${e.observacao}` : ""}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">{qtdOf(e)} {unitLabel(selected)}</span>
+                          <span className="font-semibold">{brl(totalOf(e))}</span>
                           <Button variant="ghost" size="icon" onClick={() => removeEntry(e.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
                         </div>
                       </div>
                     ))}
                   </div>
+                  )}
 
                   <Card className="p-3 space-y-1 text-sm bg-secondary/40 border-0">
-                    <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />
-                    <Row l="Valor unitário" v={brl(unit)} />
+                    {precisaApontar && <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />}
+                    {precisaApontar && <Row l={`Valor base por ${unitSingular(selected)}`} v={brl(unit)} />}
                     <Row l="Bruto" v={brl(brutoPeriodo)} />
-                    <Row l="(-) Vales / empréstimos" v={brl(adiantPeriodo)} />
+                    <Row l="(-) Vales / adiantamentos" v={brl(adiantPeriodo)} />
+                    <Row l={`(-) Empréstimos (${parcelasDoPeriodo.length} parcela(s))`} v={brl(emprestimosPeriodo)} />
                     <Row l="(-) Descontos" v={brl(descontosPeriodo)} />
                     <div className="flex justify-between pt-2 mt-1 border-t font-bold">
                       <span>Líquido</span><span className="text-primary">{brl(liquidoPeriodo)}</span>
                     </div>
+                    {periodoFechado && <div className="text-[10px] text-success pt-1">Período já fechado e pago.</div>}
                   </Card>
 
                   <div className="flex gap-2">
