@@ -136,7 +136,7 @@ export default function Funcionarios() {
   const valeSaldo = (id: string) => vales.filter(v => v.employee_id === id && !v.quitado).reduce((s, v) => s + Number(v.valor), 0);
   const pagoNoMes = (id: string) => payments.filter(p => p.employee_id === id && p.data_pagamento?.startsWith(mesAtual)).reduce((s, p) => s + Number(p.valor), 0);
   const selPagoMes = selected ? pagoNoMes(selected.id) : 0;
-  const totalReceber = selected ? Math.max(Number(selected.salario || 0) - selPagoMes - valeSaldo(selected.id), 0) : 0;
+  
 
   // ===== Folha (horas / peças) =====
   const [refY, refM] = refMes.split("-").map(Number);
