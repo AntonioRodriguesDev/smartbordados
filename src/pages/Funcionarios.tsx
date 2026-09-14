@@ -688,11 +688,12 @@ export default function Funcionarios() {
               </div>
 
               <Tabs defaultValue="folha">
-                <TabsList className="grid grid-cols-5 w-full">
+                <TabsList className="grid grid-cols-6 w-full">
                   <TabsTrigger value="folha">Folha</TabsTrigger>
                   <TabsTrigger value="dados">Dados</TabsTrigger>
-                  <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
+                  <TabsTrigger value="pagamento">Pagos</TabsTrigger>
                   <TabsTrigger value="vales">Vales</TabsTrigger>
+                  <TabsTrigger value="emprestimos">Empr.</TabsTrigger>
                   <TabsTrigger value="habilidades">Skills</TabsTrigger>
                 </TabsList>
 
