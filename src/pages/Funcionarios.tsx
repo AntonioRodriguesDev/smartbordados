@@ -428,8 +428,9 @@ export default function Funcionarios() {
 
   const imprimirPeriodo = () => {
     if (!selected || !curPeriod) return;
-    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${qtdOf(e)}</td><td>${e.observacao || ""}</td></tr>`).join("");
-    const descLinhas = valesPeriodo.map(v => `<tr><td>${fmtDate(v.data)}</td><td>${v.tipo || "vale"}</td><td>${v.descricao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("");
+    const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${qtdOf(e)}</td><td style="text-align:right">${brl(unitOf(e))}</td><td style="text-align:right">${brl(totalOf(e))}</td><td>${e.observacao || ""}</td></tr>`).join("");
+    const descLinhas = valesPeriodo.map(v => `<tr><td>${fmtDate(v.data)}</td><td>${v.tipo || "vale"}</td><td>${v.descricao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("")
+      + parcelasDoPeriodo.map(p => `<tr><td>${fmtDate(p.competencia)}</td><td>empréstimo</td><td>Parcela ${p.numero}</td><td style="text-align:right">${brl(Number(p.valor))}</td></tr>`).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${selected.nome}</title>
       <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#222}
       h1{font-size:18px;margin:0}h2{font-size:13px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.05em;color:#666}
