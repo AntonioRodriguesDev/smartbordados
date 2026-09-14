@@ -312,15 +312,18 @@ export default function Funcionarios() {
     if (!selected) return;
     const q = Number(String(entryForm.quantidade).replace(",", "."));
     if (!q || q <= 0) return toast.error("Informe a quantidade");
+    const vu = Number(String(entryForm.valorUnit).replace(",", ".")) || 0;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase.from("payroll_entries").insert({
       user_id: user.id, employee_id: selected.id, data: entryForm.data,
-      horas: isPeca ? 0 : q, pecas: isPeca ? q : 0, observacao: entryForm.observacao || null,
+      ...qtyPayload(selected, q),
+      valor_unitario: vu > 0 ? vu : unit,
+      observacao: entryForm.observacao || null,
     });
 
     if (error) return toast.error(error.message);
-    setEntryForm({ data: entryForm.data, quantidade: "", observacao: "" });
+    setEntryForm({ data: entryForm.data, quantidade: "", valorUnit: entryForm.valorUnit, observacao: "" });
     load();
   };
 
