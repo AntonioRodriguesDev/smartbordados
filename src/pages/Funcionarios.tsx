@@ -81,13 +81,15 @@ export default function Funcionarios() {
   const [loanForm, setLoanForm] = useState({ valor_total: "", parcelas: "10", data_inicio: todayISO(), descricao: "" });
 
   const load = async () => {
-    const [e, s, v, p, en, pp] = await Promise.all([
+    const [e, s, v, p, en, pp, lo, li] = await Promise.all([
       supabase.from("employees").select("*").order("nome"),
       supabase.from("employee_skills").select("*"),
       supabase.from("employee_vales").select("*").order("data", { ascending: false }),
       supabase.from("employee_payments").select("*").order("data_pagamento", { ascending: false }),
       supabase.from("payroll_entries").select("*").order("data", { ascending: false }),
       supabase.from("payroll_periods").select("*").order("inicio", { ascending: false }),
+      supabase.from("employee_loans").select("*").order("data_inicio", { ascending: false }),
+      supabase.from("loan_installments").select("*").order("competencia"),
     ]);
     setEmployees(e.data || []);
     setSkills(s.data || []);
@@ -95,6 +97,8 @@ export default function Funcionarios() {
     setPayments(p.data || []);
     setEntries((en.data as any[]) || []);
     setPeriods((pp.data as any[]) || []);
+    setLoans((lo.data as any[]) || []);
+    setParcelas((li.data as any[]) || []);
     if (!selectedId && e.data && e.data.length > 0) setSelectedId(e.data[0].id);
   };
   useEffect(() => { load(); }, []);
