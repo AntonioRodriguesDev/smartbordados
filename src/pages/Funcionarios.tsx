@@ -679,8 +679,8 @@ export default function Funcionarios() {
                   <div className="font-semibold text-sm text-success">{brl(selPagoMes)}</div>
                 </Card>
                 <Card className="p-3 bg-secondary/40 border-0">
-                  <div className="text-[10px] uppercase text-muted-foreground">Vales abertos</div>
-                  <div className="font-semibold text-sm text-warning">{brl(valeSaldo(selected.id))}</div>
+                  <div className="text-[10px] uppercase text-muted-foreground">Adiant. em aberto</div>
+                  <div className="font-semibold text-sm text-warning">{brl(adiantSaldo(selected.id))}</div>
                 </Card>
                 <Card className="p-3 bg-secondary/40 border-0">
                   <div className="text-[10px] uppercase text-muted-foreground">Empréstimos</div>
@@ -693,13 +693,11 @@ export default function Funcionarios() {
               </div>
 
               <Tabs defaultValue="folha">
-                <TabsList className="grid grid-cols-6 w-full">
+                <TabsList className="grid grid-cols-4 w-full">
                   <TabsTrigger value="folha">Folha</TabsTrigger>
                   <TabsTrigger value="dados">Dados</TabsTrigger>
-                  <TabsTrigger value="pagamento">Pagos</TabsTrigger>
-                  <TabsTrigger value="vales">Vales</TabsTrigger>
-                  <TabsTrigger value="emprestimos">Empr.</TabsTrigger>
-                  <TabsTrigger value="habilidades">Skills</TabsTrigger>
+                  <TabsTrigger value="pagamento">Pagamentos</TabsTrigger>
+                  <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="folha" className="space-y-3 pt-3">
@@ -769,7 +767,7 @@ export default function Funcionarios() {
                     {precisaApontar && <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />}
                     {precisaApontar && <Row l={`Valor base por ${unitSingular(selected)}`} v={brl(unit)} />}
                     <Row l="Bruto" v={brl(brutoPeriodo)} />
-                    <Row l="(-) Vales / adiantamentos" v={brl(adiantPeriodo)} />
+                    <Row l="(-) Adiantamentos" v={brl(adiantPeriodo)} />
                     <Row l={`(-) Empréstimos (${parcelasDoPeriodo.length} parcela(s))`} v={brl(emprestimosPeriodo)} />
                     <Row l="(-) Descontos" v={brl(descontosPeriodo)} />
                     <div className="flex justify-between pt-2 mt-1 border-t font-bold">
@@ -820,7 +818,7 @@ export default function Funcionarios() {
                     </div>
                     <Dialog open={payOpen} onOpenChange={setPayOpen}>
                       <DialogTrigger asChild>
-                        <Button size="sm" onClick={() => setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false })}>
+                        <Button size="sm" onClick={() => setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "" })}>
                           <Plus className="w-4 h-4 mr-1" /> Registrar pagamento
                         </Button>
                       </DialogTrigger>
@@ -833,7 +831,8 @@ export default function Funcionarios() {
                               <Select value={payForm.tipo} onValueChange={v => setPayForm({ ...payForm, tipo: v })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="adiantamento">Adiantamento</SelectItem>
+                                  <SelectItem value="adiantamento">Adiantamento (abate do período)</SelectItem>
+                                  <SelectItem value="desconto">Desconto (abate do período)</SelectItem>
                                   <SelectItem value="salario">Salário</SelectItem>
                                   <SelectItem value="bonus">Bônus</SelectItem>
                                   <SelectItem value="outros">Outros</SelectItem>
@@ -854,11 +853,10 @@ export default function Funcionarios() {
                             </div>
                           </div>
                           <div><Label>Observação</Label><Input value={payForm.observacao} onChange={e => setPayForm({ ...payForm, observacao: e.target.value })} /></div>
-                          {valeSaldo(selected.id) > 0 && (
-                            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <input type="checkbox" checked={payForm.quitarVales} onChange={e => setPayForm({ ...payForm, quitarVales: e.target.checked })} />
-                              Quitar vales abertos ({brl(valeSaldo(selected.id))})
-                            </label>
+                          {(payForm.tipo === "adiantamento" || payForm.tipo === "desconto") && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Lançamentos de adiantamento e desconto com data dentro do período são abatidos automaticamente do líquido.
+                            </p>
                           )}
                           <Button type="submit" className="w-full">Salvar pagamento</Button>
                         </form>
@@ -876,55 +874,6 @@ export default function Funcionarios() {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">{brl(Number(p.valor))}</span>
                           <Button variant="ghost" size="icon" onClick={() => removePayment(p.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="vales" className="space-y-3 pt-3">
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground">Saldo aberto: <strong className="text-warning">{brl(valeSaldo(selected.id))}</strong></div>
-                    <Dialog open={valeOpen} onOpenChange={setValeOpen}>
-                      <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Lançar</Button></DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader><DialogTitle>Vale ou desconto avulso</DialogTitle></DialogHeader>
-                        <form onSubmit={addVale} className="space-y-3">
-                          <div>
-                            <Label>Tipo</Label>
-                            <Select value={valeForm.tipo} onValueChange={v => setValeForm({ ...valeForm, tipo: v })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="vale">Vale (adiantamento)</SelectItem>
-                                
-                                <SelectItem value="desconto">Desconto</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div><Label>Valor</Label><Input type="number" step="0.01" required value={valeForm.valor} onChange={e => setValeForm({ ...valeForm, valor: e.target.value })} /></div>
-                          <div><Label>Data</Label><Input type="date" required value={valeForm.data} onChange={e => setValeForm({ ...valeForm, data: e.target.value })} /></div>
-                          <div><Label>Descrição</Label><Input value={valeForm.descricao} onChange={e => setValeForm({ ...valeForm, descricao: e.target.value })} /></div>
-                          <Button type="submit" className="w-full">Salvar</Button>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  <div className="space-y-1">
-                    {selVales.length === 0 && <p className="text-xs text-muted-foreground">Nenhum lançamento.</p>}
-                    {selVales.map(v => (
-                      <div key={v.id} className="flex justify-between items-center p-2 rounded bg-secondary/40 text-sm">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            {fmtDate(v.data)}
-                            <Badge variant="secondary" className="text-[10px]">{v.tipo || "vale"}</Badge>
-                            {v.descricao && <span className="text-muted-foreground text-xs">· {v.descricao}</span>}
-                          </div>
-                          {v.quitado && <Badge variant="secondary" className="text-[10px] mt-0.5">Quitado</Badge>}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{brl(Number(v.valor))}</span>
-                          <Button variant="ghost" size="icon" onClick={() => removeVale(v.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
                         </div>
                       </div>
                     ))}
@@ -990,48 +939,6 @@ export default function Funcionarios() {
                       </Card>
                     );
                   })}
-                </TabsContent>
-
-                <TabsContent value="habilidades" className="space-y-3 pt-3">
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground">{selSkills.length} habilidade(s)</div>
-                    <Dialog open={skillOpen} onOpenChange={setSkillOpen}>
-                      <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Adicionar</Button></DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader><DialogTitle>Nova habilidade</DialogTitle></DialogHeader>
-                        <form onSubmit={addSkill} className="space-y-3">
-                          <div>
-                            <Label>Habilidade</Label>
-                            <Select value={skillForm.nome} onValueChange={v => setSkillForm({ ...skillForm, nome: v })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>{HABILIDADES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>Nível (1-5)</Label>
-                            <Input type="number" min={1} max={5} value={skillForm.nivel} onChange={e => setSkillForm({ ...skillForm, nivel: Number(e.target.value) })} />
-                          </div>
-                          <Button type="submit" className="w-full">Salvar</Button>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selSkills.length === 0 && <p className="text-xs text-muted-foreground">Sem habilidades cadastradas.</p>}
-                    {selSkills.map(s => (
-                      <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/15 border border-accent/30 text-sm group">
-                        <span className="font-medium">{s.nome}</span>
-                        <span className="flex">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={`w-3 h-3 ${i < s.nivel ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
-                          ))}
-                        </span>
-                        <button onClick={() => removeSkill(s.id)} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
                 </TabsContent>
 
                 <TabsContent value="hist" className="pt-3 text-sm">
