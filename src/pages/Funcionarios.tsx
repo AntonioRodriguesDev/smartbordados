@@ -931,6 +931,67 @@ export default function Funcionarios() {
                   </div>
                 </TabsContent>
 
+                <TabsContent value="emprestimos" className="space-y-3 pt-3">
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm text-muted-foreground">
+                      A descontar: <strong className="text-warning">{brl(saldoEmprestimos(selected.id))}</strong>
+                    </div>
+                    <Dialog open={loanOpen} onOpenChange={setLoanOpen}>
+                      <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Novo empréstimo</Button></DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader><DialogTitle>Empréstimo parcelado</DialogTitle></DialogHeader>
+                        <form onSubmit={addLoan} className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div><Label>Valor total</Label><Input type="number" step="0.01" required value={loanForm.valor_total} onChange={e => setLoanForm({ ...loanForm, valor_total: e.target.value })} /></div>
+                            <div><Label>Parcelas</Label><Input type="number" min={1} required value={loanForm.parcelas} onChange={e => setLoanForm({ ...loanForm, parcelas: e.target.value })} /></div>
+                          </div>
+                          <div><Label>1ª parcela em</Label><Input type="date" required value={loanForm.data_inicio} onChange={e => setLoanForm({ ...loanForm, data_inicio: e.target.value })} /></div>
+                          <div><Label>Descrição</Label><Input value={loanForm.descricao} onChange={e => setLoanForm({ ...loanForm, descricao: e.target.value })} /></div>
+                          {Number(loanForm.valor_total) > 0 && Number(loanForm.parcelas) > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {loanForm.parcelas}x de <strong>{brl(Number(loanForm.valor_total) / Number(loanForm.parcelas))}</strong>, descontadas automaticamente a cada fechamento.
+                            </p>
+                          )}
+                          <Button type="submit" className="w-full">Salvar empréstimo</Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+
+                  {selLoans.length === 0 && <p className="text-xs text-muted-foreground">Nenhum empréstimo registrado.</p>}
+                  {selLoans.map(l => {
+                    const ps = selParcelas.filter(p => p.loan_id === l.id);
+                    const pagas = ps.filter(p => p.status !== "pendente").length;
+                    return (
+                      <Card key={l.id} className="p-3 space-y-2 bg-secondary/30 border-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <div className="font-semibold text-sm">
+                              {brl(Number(l.valor_total))} em {l.parcelas}x de {brl(Number(l.valor_parcela))}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {l.descricao ? `${l.descricao} · ` : ""}início {fmtDate(l.data_inicio)} · {pagas}/{l.parcelas} pagas
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Badge variant={l.status === "quitado" ? "secondary" : "default"} className="text-[10px]">{l.status}</Badge>
+                            <Button variant="ghost" size="icon" onClick={() => removeLoan(l.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1">
+                          {ps.map(p => (
+                            <button key={p.id} onClick={() => toggleParcela(p)}
+                              className={`flex justify-between items-center text-[11px] px-2 py-1 rounded transition-colors ${p.status === "pendente" ? "bg-background hover:bg-secondary" : "bg-success/10 text-success line-through"}`}>
+                              <span>{p.numero}ª · {fmtDate(p.competencia)}</span>
+                              <span className="font-semibold">{brl(Number(p.valor))}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </TabsContent>
+
                 <TabsContent value="habilidades" className="space-y-3 pt-3">
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-muted-foreground">{selSkills.length} habilidade(s)</div>
