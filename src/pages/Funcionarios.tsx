@@ -854,11 +854,10 @@ export default function Funcionarios() {
                             </div>
                           </div>
                           <div><Label>Observação</Label><Input value={payForm.observacao} onChange={e => setPayForm({ ...payForm, observacao: e.target.value })} /></div>
-                          {valeSaldo(selected.id) > 0 && (
-                            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <input type="checkbox" checked={payForm.quitarVales} onChange={e => setPayForm({ ...payForm, quitarVales: e.target.checked })} />
-                              Quitar vales abertos ({brl(valeSaldo(selected.id))})
-                            </label>
+                          {(payForm.tipo === "adiantamento" || payForm.tipo === "desconto") && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Lançamentos de adiantamento e desconto com data dentro do período são abatidos automaticamente do líquido.
+                            </p>
                           )}
                           <Button type="submit" className="w-full">Salvar pagamento</Button>
                         </form>
