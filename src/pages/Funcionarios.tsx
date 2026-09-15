@@ -820,7 +820,7 @@ export default function Funcionarios() {
                     </div>
                     <Dialog open={payOpen} onOpenChange={setPayOpen}>
                       <DialogTrigger asChild>
-                        <Button size="sm" onClick={() => setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false })}>
+                        <Button size="sm" onClick={() => setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "" })}>
                           <Plus className="w-4 h-4 mr-1" /> Registrar pagamento
                         </Button>
                       </DialogTrigger>
