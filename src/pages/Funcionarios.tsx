@@ -896,7 +896,7 @@ export default function Funcionarios() {
                               <SelectTrigger><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="vale">Vale (adiantamento)</SelectItem>
-                                <SelectItem value="emprestimo">Empréstimo</SelectItem>
+                                
                                 <SelectItem value="desconto">Desconto</SelectItem>
                               </SelectContent>
                             </Select>
