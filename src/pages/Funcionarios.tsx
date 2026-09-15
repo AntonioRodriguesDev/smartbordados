@@ -668,10 +668,11 @@ export default function Funcionarios() {
               </div>
 
               {/* Mini cards financeiros */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 <Card className="p-3 bg-secondary/40 border-0">
-                  <div className="text-[10px] uppercase text-muted-foreground">Salário</div>
-                  <div className="font-semibold text-sm">{brl(Number(selected.salario || 0))}</div>
+                  <div className="text-[10px] uppercase text-muted-foreground">Base</div>
+                  <div className="font-semibold text-sm">{brl(unit)}</div>
+                  <div className="text-[10px] text-muted-foreground">por {unitSingular(selected)}</div>
                 </Card>
                 <Card className="p-3 bg-secondary/40 border-0">
                   <div className="text-[10px] uppercase text-muted-foreground">Pago no mês</div>
@@ -681,8 +682,12 @@ export default function Funcionarios() {
                   <div className="text-[10px] uppercase text-muted-foreground">Vales abertos</div>
                   <div className="font-semibold text-sm text-warning">{brl(valeSaldo(selected.id))}</div>
                 </Card>
+                <Card className="p-3 bg-secondary/40 border-0">
+                  <div className="text-[10px] uppercase text-muted-foreground">Empréstimos</div>
+                  <div className="font-semibold text-sm text-warning">{brl(saldoEmprestimos(selected.id))}</div>
+                </Card>
                 <Card className="p-3 gradient-primary text-primary-foreground border-0">
-                  <div className="text-[10px] uppercase opacity-90">Saldo a pagar</div>
+                  <div className="text-[10px] uppercase opacity-90">Líquido do período</div>
                   <div className="font-semibold text-sm">{brl(totalReceber)}</div>
                 </Card>
               </div>
