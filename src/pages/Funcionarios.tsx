@@ -769,7 +769,7 @@ export default function Funcionarios() {
                     {precisaApontar && <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />}
                     {precisaApontar && <Row l={`Valor base por ${unitSingular(selected)}`} v={brl(unit)} />}
                     <Row l="Bruto" v={brl(brutoPeriodo)} />
-                    <Row l="(-) Vales / adiantamentos" v={brl(adiantPeriodo)} />
+                    <Row l="(-) Adiantamentos" v={brl(adiantPeriodo)} />
                     <Row l={`(-) Empréstimos (${parcelasDoPeriodo.length} parcela(s))`} v={brl(emprestimosPeriodo)} />
                     <Row l="(-) Descontos" v={brl(descontosPeriodo)} />
                     <div className="flex justify-between pt-2 mt-1 border-t font-bold">
