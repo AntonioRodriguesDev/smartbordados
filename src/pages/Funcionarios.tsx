@@ -888,7 +888,7 @@ export default function Funcionarios() {
                     <Dialog open={valeOpen} onOpenChange={setValeOpen}>
                       <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Lançar</Button></DialogTrigger>
                       <DialogContent>
-                        <DialogHeader><DialogTitle>Vale, empréstimo ou desconto</DialogTitle></DialogHeader>
+                        <DialogHeader><DialogTitle>Vale ou desconto avulso</DialogTitle></DialogHeader>
                         <form onSubmit={addVale} className="space-y-3">
                           <div>
                             <Label>Tipo</Label>
