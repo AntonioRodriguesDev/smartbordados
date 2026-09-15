@@ -833,7 +833,8 @@ export default function Funcionarios() {
                               <Select value={payForm.tipo} onValueChange={v => setPayForm({ ...payForm, tipo: v })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="adiantamento">Adiantamento</SelectItem>
+                                  <SelectItem value="adiantamento">Adiantamento (abate do período)</SelectItem>
+                                  <SelectItem value="desconto">Desconto (abate do período)</SelectItem>
                                   <SelectItem value="salario">Salário</SelectItem>
                                   <SelectItem value="bonus">Bônus</SelectItem>
                                   <SelectItem value="outros">Outros</SelectItem>
