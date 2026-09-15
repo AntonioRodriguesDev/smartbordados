@@ -679,8 +679,8 @@ export default function Funcionarios() {
                   <div className="font-semibold text-sm text-success">{brl(selPagoMes)}</div>
                 </Card>
                 <Card className="p-3 bg-secondary/40 border-0">
-                  <div className="text-[10px] uppercase text-muted-foreground">Vales abertos</div>
-                  <div className="font-semibold text-sm text-warning">{brl(valeSaldo(selected.id))}</div>
+                  <div className="text-[10px] uppercase text-muted-foreground">Adiant. em aberto</div>
+                  <div className="font-semibold text-sm text-warning">{brl(adiantSaldo(selected.id))}</div>
                 </Card>
                 <Card className="p-3 bg-secondary/40 border-0">
                   <div className="text-[10px] uppercase text-muted-foreground">Empréstimos</div>
