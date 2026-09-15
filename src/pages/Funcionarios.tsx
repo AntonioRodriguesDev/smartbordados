@@ -992,48 +992,6 @@ export default function Funcionarios() {
                   })}
                 </TabsContent>
 
-                <TabsContent value="habilidades" className="space-y-3 pt-3">
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground">{selSkills.length} habilidade(s)</div>
-                    <Dialog open={skillOpen} onOpenChange={setSkillOpen}>
-                      <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Adicionar</Button></DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader><DialogTitle>Nova habilidade</DialogTitle></DialogHeader>
-                        <form onSubmit={addSkill} className="space-y-3">
-                          <div>
-                            <Label>Habilidade</Label>
-                            <Select value={skillForm.nome} onValueChange={v => setSkillForm({ ...skillForm, nome: v })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>{HABILIDADES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>Nível (1-5)</Label>
-                            <Input type="number" min={1} max={5} value={skillForm.nivel} onChange={e => setSkillForm({ ...skillForm, nivel: Number(e.target.value) })} />
-                          </div>
-                          <Button type="submit" className="w-full">Salvar</Button>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selSkills.length === 0 && <p className="text-xs text-muted-foreground">Sem habilidades cadastradas.</p>}
-                    {selSkills.map(s => (
-                      <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/15 border border-accent/30 text-sm group">
-                        <span className="font-medium">{s.nome}</span>
-                        <span className="flex">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={`w-3 h-3 ${i < s.nivel ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
-                          ))}
-                        </span>
-                        <button onClick={() => removeSkill(s.id)} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-
                 <TabsContent value="hist" className="pt-3 text-sm">
                   <div className="text-muted-foreground text-xs mb-2">Observações</div>
                   <p className="text-sm whitespace-pre-wrap">{selected.observacoes || "—"}</p>
