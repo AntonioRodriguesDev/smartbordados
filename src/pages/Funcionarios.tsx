@@ -112,16 +112,14 @@ export default function Funcionarios() {
   }), [employees, search, setorFilter, statusFilter]);
 
   const selected = employees.find(e => e.id === selectedId) || null;
-  const selSkills = skills.filter(s => s.employee_id === selectedId);
-  const selVales = vales.filter(v => v.employee_id === selectedId);
   const selPayments = payments.filter(p => p.employee_id === selectedId);
 
   // Stats
   const ativos = employees.filter(e => e.status === "ativo");
   const folhaMes = ativos.reduce((s, e) => s + Number(e.salario || 0), 0);
   const mesAtual = new Date().toISOString().slice(0, 7);
-  const valesMes = vales.filter(v => v.data?.startsWith(mesAtual));
-  const totalValesMes = valesMes.reduce((s, v) => s + Number(v.valor), 0);
+  const adiantMes = payments.filter(p => ABATE_TIPOS.includes(p.tipo) && p.data_pagamento?.startsWith(mesAtual));
+  const totalAdiantMes = adiantMes.reduce((s, p) => s + Number(p.valor), 0);
 
   const aniversariantes = employees
     .map(e => ({ ...e, dias: daysUntilBirthday(e.data_nascimento) }))
