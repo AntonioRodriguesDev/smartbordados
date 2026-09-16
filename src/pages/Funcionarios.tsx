@@ -291,12 +291,9 @@ export default function Funcionarios() {
       data_pagamento: payForm.data, tipo: payForm.tipo, observacao: payForm.observacao || null,
     });
     if (error) return toast.error(error.message);
-    if (payForm.quitarVales) {
-      await supabase.from("employee_vales").update({ quitado: true }).eq("employee_id", selected.id).eq("quitado", false);
-    }
     toast.success("Pagamento registrado");
     setPayOpen(false);
-    setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
+    setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "" });
     load();
   };
 
