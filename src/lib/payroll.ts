@@ -131,6 +131,21 @@ export function brutoPeriodo(emp: PayrollEmp, entries: PayrollEntry[], periodsNo
   return entries.reduce((s, e) => s + entryTotal(emp, e), 0);
 }
 
+/** Converte horas decimais em "8h30". */
+export function hhmm(qtd: number) {
+  const total = Math.round(Number(qtd || 0) * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return m ? `${h}h${pad(m)}` : `${h}h`;
+}
+
+/** Exibição da quantidade conforme o tipo de pagamento. */
+export function fmtQty(emp: PayrollEmp, qtd: number) {
+  if (tipoOf(emp) === "hora") return hhmm(qtd);
+  const n = Number(qtd || 0);
+  return String(Number.isInteger(n) ? n : n.toFixed(2).replace(".", ","));
+}
+
 /** Gera as parcelas de um empréstimo, uma por mês a partir da data inicial. */
 export function buildInstallments(dataInicio: string, parcelas: number, valorParcela: number) {
   const [y, m, d] = dataInicio.split("-").map(Number);

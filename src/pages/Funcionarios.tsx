@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Users, Cake, Wallet, Banknote, Search, Pencil, Trash2, Star, Bell, Clock, Printer, Calculator } from "lucide-react";
+import { Plus, Users, Cake, Wallet, Banknote, Search, Pencil, Trash2, Clock, Printer, Calculator } from "lucide-react";
 import { brl, fmtDate, todayISO } from "@/lib/format";
 import {
   periodsForMonth, periodIndexFor, unitValue, unitLabel, unitSingular,
@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 
 const SETORES = ["Corte", "Bordado", "Chanfrado", "Separação", "Acabamento", "Revisão", "Administrativo"];
-const HABILIDADES = ["Corte", "Bordado", "Chanfrado", "Separação", "Acabamento", "Revisão"];
+const ABATE_TIPOS = ["adiantamento", "desconto", "vale"];
 
 
 const initials = (n: string) => n.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
@@ -53,8 +53,6 @@ const emptyEmp = {
 
 export default function Funcionarios() {
   const [employees, setEmployees] = useState<any[]>([]);
-  const [skills, setSkills] = useState<any[]>([]);
-  const [vales, setVales] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [setorFilter, setSetorFilter] = useState("todos");
@@ -63,12 +61,8 @@ export default function Funcionarios() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<any>(emptyEmp);
-  const [valeOpen, setValeOpen] = useState(false);
-  const [valeForm, setValeForm] = useState({ valor: "", data: todayISO(), descricao: "", tipo: "vale" });
-  const [skillOpen, setSkillOpen] = useState(false);
-  const [skillForm, setSkillForm] = useState({ nome: "Corte", nivel: 3 });
   const [payOpen, setPayOpen] = useState(false);
-  const [payForm, setPayForm] = useState({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
+  const [payForm, setPayForm] = useState({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "" });
   const [entries, setEntries] = useState<any[]>([]);
   const [periods, setPeriods] = useState<any[]>([]);
   const [refMes, setRefMes] = useState(new Date().toISOString().slice(0, 7));
@@ -81,10 +75,8 @@ export default function Funcionarios() {
   const [loanForm, setLoanForm] = useState({ valor_total: "", parcelas: "10", data_inicio: todayISO(), descricao: "" });
 
   const load = async () => {
-    const [e, s, v, p, en, pp, lo, li] = await Promise.all([
+    const [e, p, en, pp, lo, li] = await Promise.all([
       supabase.from("employees").select("*").order("nome"),
-      supabase.from("employee_skills").select("*"),
-      supabase.from("employee_vales").select("*").order("data", { ascending: false }),
       supabase.from("employee_payments").select("*").order("data_pagamento", { ascending: false }),
       supabase.from("payroll_entries").select("*").order("data", { ascending: false }),
       supabase.from("payroll_periods").select("*").order("inicio", { ascending: false }),
@@ -92,8 +84,6 @@ export default function Funcionarios() {
       supabase.from("loan_installments").select("*").order("competencia"),
     ]);
     setEmployees(e.data || []);
-    setSkills(s.data || []);
-    setVales(v.data || []);
     setPayments(p.data || []);
     setEntries((en.data as any[]) || []);
     setPeriods((pp.data as any[]) || []);
@@ -112,16 +102,14 @@ export default function Funcionarios() {
   }), [employees, search, setorFilter, statusFilter]);
 
   const selected = employees.find(e => e.id === selectedId) || null;
-  const selSkills = skills.filter(s => s.employee_id === selectedId);
-  const selVales = vales.filter(v => v.employee_id === selectedId);
   const selPayments = payments.filter(p => p.employee_id === selectedId);
 
   // Stats
   const ativos = employees.filter(e => e.status === "ativo");
   const folhaMes = ativos.reduce((s, e) => s + Number(e.salario || 0), 0);
   const mesAtual = new Date().toISOString().slice(0, 7);
-  const valesMes = vales.filter(v => v.data?.startsWith(mesAtual));
-  const totalValesMes = valesMes.reduce((s, v) => s + Number(v.valor), 0);
+  const adiantMes = payments.filter(p => ABATE_TIPOS.includes(p.tipo) && p.data_pagamento?.startsWith(mesAtual));
+  const totalAdiantMes = adiantMes.reduce((s, p) => s + Number(p.valor), 0);
 
   const aniversariantes = employees
     .map(e => ({ ...e, dias: daysUntilBirthday(e.data_nascimento) }))
@@ -133,7 +121,9 @@ export default function Funcionarios() {
     .sort((a, b) => a.prox.localeCompare(b.prox))
     .slice(0, 5);
 
-  const valeSaldo = (id: string) => vales.filter(v => v.employee_id === id && !v.quitado).reduce((s, v) => s + Number(v.valor), 0);
+  const adiantSaldo = (id: string) => payments
+    .filter(p => p.employee_id === id && ABATE_TIPOS.includes(p.tipo) && !p.payroll_period_id)
+    .reduce((s, p) => s + Number(p.valor), 0);
   const pagoNoMes = (id: string) => payments.filter(p => p.employee_id === id && p.data_pagamento?.startsWith(mesAtual)).reduce((s, p) => s + Number(p.valor), 0);
   const selPagoMes = selected ? pagoNoMes(selected.id) : 0;
   
@@ -154,11 +144,13 @@ export default function Funcionarios() {
 
   const unit = selected ? unitValue(selected) : 0;
   const brutoPeriodo = selected ? calcBruto(selected, selEntries, selPeriods.length || 1) : 0;
-  const valesPeriodo = selected && curPeriod
-    ? vales.filter(v => v.employee_id === selected.id && v.data >= curPeriod.inicio && v.data <= curPeriod.fim)
+  const abatesPeriodo = selected && curPeriod
+    ? payments.filter(p => p.employee_id === selected.id && ABATE_TIPOS.includes(p.tipo)
+        && !p.payroll_period_id
+        && p.data_pagamento >= curPeriod.inicio && p.data_pagamento <= curPeriod.fim)
     : [];
-  const descontosPeriodo = valesPeriodo.filter(v => v.tipo === "desconto").reduce((s, v) => s + Number(v.valor), 0);
-  const adiantPeriodo = valesPeriodo.filter(v => v.tipo !== "desconto").reduce((s, v) => s + Number(v.valor), 0);
+  const descontosPeriodo = abatesPeriodo.filter(p => p.tipo === "desconto").reduce((s, p) => s + Number(p.valor), 0);
+  const adiantPeriodo = abatesPeriodo.filter(p => p.tipo !== "desconto").reduce((s, p) => s + Number(p.valor), 0);
 
   // Empréstimos do funcionário e parcelas a descontar neste período
   const selLoans = loans.filter(l => l.employee_id === selectedId);
@@ -229,8 +221,8 @@ export default function Funcionarios() {
 
   const removeEmp = async (id: string) => {
     if (!confirm("Excluir funcionário e todos os registros?")) return;
-    await supabase.from("employee_skills").delete().eq("employee_id", id);
-    await supabase.from("employee_vales").delete().eq("employee_id", id);
+    await supabase.from("loan_installments").delete().eq("employee_id", id);
+    await supabase.from("employee_loans").delete().eq("employee_id", id);
     await supabase.from("employee_payments").delete().eq("employee_id", id);
     await supabase.from("payroll_entries").delete().eq("employee_id", id);
     await supabase.from("payroll_periods").delete().eq("employee_id", id);
@@ -240,44 +232,6 @@ export default function Funcionarios() {
     load();
   };
 
-  const addVale = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!selected) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error } = await supabase.from("employee_vales").insert({
-      user_id: user.id, employee_id: selected.id, tipo: valeForm.tipo,
-      valor: Number(valeForm.valor), data: valeForm.data, descricao: valeForm.descricao || null,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Lançamento salvo");
-    setValeOpen(false); setValeForm({ valor: "", data: todayISO(), descricao: "", tipo: "vale" });
-    load();
-  };
-
-
-  const removeVale = async (id: string) => {
-    await supabase.from("employee_vales").delete().eq("id", id);
-    load();
-  };
-
-  const addSkill = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!selected) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error } = await supabase.from("employee_skills").insert({
-      user_id: user.id, employee_id: selected.id, nome: skillForm.nome, nivel: skillForm.nivel,
-    });
-    if (error) return toast.error(error.message);
-    setSkillOpen(false); setSkillForm({ nome: "Corte", nivel: 3 });
-    load();
-  };
-
-  const removeSkill = async (id: string) => {
-    await supabase.from("employee_skills").delete().eq("id", id);
-    load();
-  };
 
   const submitPayment = async (ev: React.FormEvent) => {
     ev.preventDefault();
@@ -291,12 +245,9 @@ export default function Funcionarios() {
       data_pagamento: payForm.data, tipo: payForm.tipo, observacao: payForm.observacao || null,
     });
     if (error) return toast.error(error.message);
-    if (payForm.quitarVales) {
-      await supabase.from("employee_vales").update({ quitado: true }).eq("employee_id", selected.id).eq("quitado", false);
-    }
     toast.success("Pagamento registrado");
     setPayOpen(false);
-    setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
+    setPayForm({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "" });
     load();
   };
 
@@ -351,12 +302,12 @@ export default function Funcionarios() {
     if (error) { setClosing(false); return toast.error(error.message); }
 
     const periodId = per?.id as string;
-    // Liga vales/descontos do período ao fechamento e marca como quitados
-    const valeIds = valesPeriodo.map(v => v.id);
-    if (valeIds.length) {
-      await supabase.from("employee_vales")
-        .update({ quitado: true, payroll_period_id: periodId })
-        .in("id", valeIds);
+    // Liga adiantamentos/descontos do período ao fechamento
+    const abateIds = abatesPeriodo.map(v => v.id);
+    if (abateIds.length) {
+      await supabase.from("employee_payments")
+        .update({ payroll_period_id: periodId })
+        .in("id", abateIds);
     }
     // Baixa as parcelas de empréstimo descontadas
     const parcIds = parcelasDoPeriodo.map(p => p.id);
@@ -429,7 +380,7 @@ export default function Funcionarios() {
   const imprimirPeriodo = () => {
     if (!selected || !curPeriod) return;
     const linhas = selEntries.map(e => `<tr><td>${fmtDate(e.data)}</td><td style="text-align:right">${qtdOf(e)}</td><td style="text-align:right">${brl(unitOf(e))}</td><td style="text-align:right">${brl(totalOf(e))}</td><td>${e.observacao || ""}</td></tr>`).join("");
-    const descLinhas = valesPeriodo.map(v => `<tr><td>${fmtDate(v.data)}</td><td>${v.tipo || "vale"}</td><td>${v.descricao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("")
+    const descLinhas = abatesPeriodo.map(v => `<tr><td>${fmtDate(v.data_pagamento)}</td><td>${v.tipo}</td><td>${v.observacao || ""}</td><td style="text-align:right">${brl(Number(v.valor))}</td></tr>`).join("")
       + parcelasDoPeriodo.map(p => `<tr><td>${fmtDate(p.competencia)}</td><td>empréstimo</td><td>Parcela ${p.numero}</td><td style="text-align:right">${brl(Number(p.valor))}</td></tr>`).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${selected.nome}</title>
       <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#222}
@@ -446,13 +397,13 @@ export default function Funcionarios() {
       </div>
       <h2>Apontamentos</h2>
       <table><thead><tr><th>Data</th><th style="text-align:right">${unitLabel(selected)}</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th><th>Obs.</th></tr></thead><tbody>${linhas || "<tr><td colspan=5>Sem apontamentos</td></tr>"}</tbody></table>
-      <h2>Descontos, vales e empréstimos</h2>
+      <h2>Adiantamentos, descontos e empréstimos</h2>
       <table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody>${descLinhas || "<tr><td colspan=4>Nenhum</td></tr>"}</tbody></table>
       <h2>Resumo</h2>
       <div class="tot"><span>Total de ${unitLabel(selected)}</span><span>${qtdPeriodo}</span></div>
       <div class="tot"><span>Valor unitário base</span><span>${brl(unit)}</span></div>
       <div class="tot"><span>Bruto</span><span>${brl(brutoPeriodo)}</span></div>
-      <div class="tot"><span>(-) Vales / adiantamentos</span><span>${brl(adiantPeriodo)}</span></div>
+      <div class="tot"><span>(-) Adiantamentos</span><span>${brl(adiantPeriodo)}</span></div>
       <div class="tot"><span>(-) Parcelas de empréstimo</span><span>${brl(emprestimosPeriodo)}</span></div>
       <div class="tot"><span>(-) Descontos</span><span>${brl(descontosPeriodo)}</span></div>
       <div class="tot big"><span>Líquido a receber</span><span>${brl(liquidoPeriodo)}</span></div>
@@ -472,7 +423,7 @@ export default function Funcionarios() {
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold">Funcionários</h1>
-          <p className="text-muted-foreground text-sm">Gerencie equipe, pagamentos, vales e habilidades</p>
+          <p className="text-muted-foreground text-sm">Gerencie equipe, folha, pagamentos e empréstimos</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -593,9 +544,9 @@ export default function Funcionarios() {
           <div className="text-xs text-muted-foreground">Custo total da equipe</div>
         </Card>
         <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground"><Wallet className="w-4 h-4" /> Vales do mês</div>
-          <div className="text-2xl font-bold mt-2">{brl(totalValesMes)}</div>
-          <div className="text-xs text-muted-foreground">{valesMes.length} lançamento(s)</div>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground"><Wallet className="w-4 h-4" /> Adiantamentos do mês</div>
+          <div className="text-2xl font-bold mt-2">{brl(totalAdiantMes)}</div>
+          <div className="text-xs text-muted-foreground">{adiantMes.length} lançamento(s)</div>
         </Card>
       </div>
 
@@ -764,7 +715,7 @@ export default function Funcionarios() {
                   )}
 
                   <Card className="p-3 space-y-1 text-sm bg-secondary/40 border-0">
-                    {precisaApontar && <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />}
+                    {precisaApontar && <Row l={`Total de ${unitLabel(selected)}`} v={fmtQty(selected, qtdPeriodo)} />}
                     {precisaApontar && <Row l={`Valor base por ${unitSingular(selected)}`} v={brl(unit)} />}
                     <Row l="Bruto" v={brl(brutoPeriodo)} />
                     <Row l="(-) Adiantamentos" v={brl(adiantPeriodo)} />
@@ -986,17 +937,6 @@ export default function Funcionarios() {
             </div>
           </Card>
 
-          {employees.some(e => !skills.find(s => s.employee_id === e.id)) && (
-            <Card className="p-3 shadow-card border-warning/40 bg-warning/5">
-              <div className="flex items-start gap-2">
-                <Bell className="w-4 h-4 text-warning mt-0.5" />
-                <div className="text-xs">
-                  <div className="font-semibold">Atenção</div>
-                  <div className="text-muted-foreground">Há funcionários sem habilidades cadastradas.</div>
-                </div>
-              </div>
-            </Card>
-          )}
         </div>
       </div>
     </div>
