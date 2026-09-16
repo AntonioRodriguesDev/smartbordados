@@ -240,44 +240,6 @@ export default function Funcionarios() {
     load();
   };
 
-  const addVale = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!selected) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error } = await supabase.from("employee_vales").insert({
-      user_id: user.id, employee_id: selected.id, tipo: valeForm.tipo,
-      valor: Number(valeForm.valor), data: valeForm.data, descricao: valeForm.descricao || null,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Lançamento salvo");
-    setValeOpen(false); setValeForm({ valor: "", data: todayISO(), descricao: "", tipo: "vale" });
-    load();
-  };
-
-
-  const removeVale = async (id: string) => {
-    await supabase.from("employee_vales").delete().eq("id", id);
-    load();
-  };
-
-  const addSkill = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!selected) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error } = await supabase.from("employee_skills").insert({
-      user_id: user.id, employee_id: selected.id, nome: skillForm.nome, nivel: skillForm.nivel,
-    });
-    if (error) return toast.error(error.message);
-    setSkillOpen(false); setSkillForm({ nome: "Corte", nivel: 3 });
-    load();
-  };
-
-  const removeSkill = async (id: string) => {
-    await supabase.from("employee_skills").delete().eq("id", id);
-    load();
-  };
 
   const submitPayment = async (ev: React.FormEvent) => {
     ev.preventDefault();
