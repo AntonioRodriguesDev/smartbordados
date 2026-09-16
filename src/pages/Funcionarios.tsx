@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Users, Cake, Wallet, Banknote, Search, Pencil, Trash2, Star, Bell, Clock, Printer, Calculator } from "lucide-react";
+import { Plus, Users, Cake, Wallet, Banknote, Search, Pencil, Trash2, Clock, Printer, Calculator } from "lucide-react";
 import { brl, fmtDate, todayISO } from "@/lib/format";
 import {
   periodsForMonth, periodIndexFor, unitValue, unitLabel, unitSingular,
