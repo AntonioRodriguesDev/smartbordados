@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 
 const SETORES = ["Corte", "Bordado", "Chanfrado", "Separação", "Acabamento", "Revisão", "Administrativo"];
-const HABILIDADES = ["Corte", "Bordado", "Chanfrado", "Separação", "Acabamento", "Revisão"];
+const ABATE_TIPOS = ["adiantamento", "desconto", "vale"];
 
 
 const initials = (n: string) => n.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
