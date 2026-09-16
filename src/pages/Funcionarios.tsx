@@ -61,12 +61,8 @@ export default function Funcionarios() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<any>(emptyEmp);
-  const [valeOpen, setValeOpen] = useState(false);
-  const [valeForm, setValeForm] = useState({ valor: "", data: todayISO(), descricao: "", tipo: "vale" });
-  const [skillOpen, setSkillOpen] = useState(false);
-  const [skillForm, setSkillForm] = useState({ nome: "Corte", nivel: 3 });
   const [payOpen, setPayOpen] = useState(false);
-  const [payForm, setPayForm] = useState({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "", quitarVales: false });
+  const [payForm, setPayForm] = useState({ valor: "", data: todayISO(), tipo: "adiantamento", observacao: "" });
   const [entries, setEntries] = useState<any[]>([]);
   const [periods, setPeriods] = useState<any[]>([]);
   const [refMes, setRefMes] = useState(new Date().toISOString().slice(0, 7));
