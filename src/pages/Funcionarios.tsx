@@ -472,7 +472,7 @@ export default function Funcionarios() {
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold">Funcionários</h1>
-          <p className="text-muted-foreground text-sm">Gerencie equipe, pagamentos, vales e habilidades</p>
+          <p className="text-muted-foreground text-sm">Gerencie equipe, folha, pagamentos e empréstimos</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
