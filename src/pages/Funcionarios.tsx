@@ -53,8 +53,6 @@ const emptyEmp = {
 
 export default function Funcionarios() {
   const [employees, setEmployees] = useState<any[]>([]);
-  const [skills, setSkills] = useState<any[]>([]);
-  const [vales, setVales] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [setorFilter, setSetorFilter] = useState("todos");
