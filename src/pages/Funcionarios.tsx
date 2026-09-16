@@ -452,7 +452,7 @@ export default function Funcionarios() {
       <div class="tot"><span>Total de ${unitLabel(selected)}</span><span>${qtdPeriodo}</span></div>
       <div class="tot"><span>Valor unitário base</span><span>${brl(unit)}</span></div>
       <div class="tot"><span>Bruto</span><span>${brl(brutoPeriodo)}</span></div>
-      <div class="tot"><span>(-) Vales / adiantamentos</span><span>${brl(adiantPeriodo)}</span></div>
+      <div class="tot"><span>(-) Adiantamentos</span><span>${brl(adiantPeriodo)}</span></div>
       <div class="tot"><span>(-) Parcelas de empréstimo</span><span>${brl(emprestimosPeriodo)}</span></div>
       <div class="tot"><span>(-) Descontos</span><span>${brl(descontosPeriodo)}</span></div>
       <div class="tot big"><span>Líquido a receber</span><span>${brl(liquidoPeriodo)}</span></div>
