@@ -593,9 +593,9 @@ export default function Funcionarios() {
           <div className="text-xs text-muted-foreground">Custo total da equipe</div>
         </Card>
         <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground"><Wallet className="w-4 h-4" /> Vales do mês</div>
-          <div className="text-2xl font-bold mt-2">{brl(totalValesMes)}</div>
-          <div className="text-xs text-muted-foreground">{valesMes.length} lançamento(s)</div>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground"><Wallet className="w-4 h-4" /> Adiantamentos do mês</div>
+          <div className="text-2xl font-bold mt-2">{brl(totalAdiantMes)}</div>
+          <div className="text-xs text-muted-foreground">{adiantMes.length} lançamento(s)</div>
         </Card>
       </div>
 
