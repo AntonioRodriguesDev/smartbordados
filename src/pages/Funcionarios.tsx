@@ -715,7 +715,7 @@ export default function Funcionarios() {
                   )}
 
                   <Card className="p-3 space-y-1 text-sm bg-secondary/40 border-0">
-                    {precisaApontar && <Row l={`Total de ${unitLabel(selected)}`} v={String(qtdPeriodo)} />}
+                    {precisaApontar && <Row l={`Total de ${unitLabel(selected)}`} v={fmtQty(selected, qtdPeriodo)} />}
                     {precisaApontar && <Row l={`Valor base por ${unitSingular(selected)}`} v={brl(unit)} />}
                     <Row l="Bruto" v={brl(brutoPeriodo)} />
                     <Row l="(-) Adiantamentos" v={brl(adiantPeriodo)} />
