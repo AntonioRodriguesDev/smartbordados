@@ -229,8 +229,8 @@ export default function Funcionarios() {
 
   const removeEmp = async (id: string) => {
     if (!confirm("Excluir funcionário e todos os registros?")) return;
-    await supabase.from("employee_skills").delete().eq("employee_id", id);
-    await supabase.from("employee_vales").delete().eq("employee_id", id);
+    await supabase.from("loan_installments").delete().eq("employee_id", id);
+    await supabase.from("employee_loans").delete().eq("employee_id", id);
     await supabase.from("employee_payments").delete().eq("employee_id", id);
     await supabase.from("payroll_entries").delete().eq("employee_id", id);
     await supabase.from("payroll_periods").delete().eq("employee_id", id);
