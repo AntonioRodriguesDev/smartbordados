@@ -351,12 +351,12 @@ export default function Funcionarios() {
     if (error) { setClosing(false); return toast.error(error.message); }
 
     const periodId = per?.id as string;
-    // Liga vales/descontos do período ao fechamento e marca como quitados
-    const valeIds = valesPeriodo.map(v => v.id);
-    if (valeIds.length) {
-      await supabase.from("employee_vales")
-        .update({ quitado: true, payroll_period_id: periodId })
-        .in("id", valeIds);
+    // Liga adiantamentos/descontos do período ao fechamento
+    const abateIds = abatesPeriodo.map(v => v.id);
+    if (abateIds.length) {
+      await supabase.from("employee_payments")
+        .update({ payroll_period_id: periodId })
+        .in("id", abateIds);
     }
     // Baixa as parcelas de empréstimo descontadas
     const parcIds = parcelasDoPeriodo.map(p => p.id);
