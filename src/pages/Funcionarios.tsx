@@ -154,11 +154,13 @@ export default function Funcionarios() {
 
   const unit = selected ? unitValue(selected) : 0;
   const brutoPeriodo = selected ? calcBruto(selected, selEntries, selPeriods.length || 1) : 0;
-  const valesPeriodo = selected && curPeriod
-    ? vales.filter(v => v.employee_id === selected.id && v.data >= curPeriod.inicio && v.data <= curPeriod.fim)
+  const abatesPeriodo = selected && curPeriod
+    ? payments.filter(p => p.employee_id === selected.id && ABATE_TIPOS.includes(p.tipo)
+        && !p.payroll_period_id
+        && p.data_pagamento >= curPeriod.inicio && p.data_pagamento <= curPeriod.fim)
     : [];
-  const descontosPeriodo = valesPeriodo.filter(v => v.tipo === "desconto").reduce((s, v) => s + Number(v.valor), 0);
-  const adiantPeriodo = valesPeriodo.filter(v => v.tipo !== "desconto").reduce((s, v) => s + Number(v.valor), 0);
+  const descontosPeriodo = abatesPeriodo.filter(p => p.tipo === "desconto").reduce((s, p) => s + Number(p.valor), 0);
+  const adiantPeriodo = abatesPeriodo.filter(p => p.tipo !== "desconto").reduce((s, p) => s + Number(p.valor), 0);
 
   // Empréstimos do funcionário e parcelas a descontar neste período
   const selLoans = loans.filter(l => l.employee_id === selectedId);
