@@ -90,8 +90,6 @@ export default function Funcionarios() {
       supabase.from("loan_installments").select("*").order("competencia"),
     ]);
     setEmployees(e.data || []);
-    setSkills(s.data || []);
-    setVales(v.data || []);
     setPayments(p.data || []);
     setEntries((en.data as any[]) || []);
     setPeriods((pp.data as any[]) || []);
