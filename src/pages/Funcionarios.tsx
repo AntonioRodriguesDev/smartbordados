@@ -986,17 +986,6 @@ export default function Funcionarios() {
             </div>
           </Card>
 
-          {employees.some(e => !skills.find(s => s.employee_id === e.id)) && (
-            <Card className="p-3 shadow-card border-warning/40 bg-warning/5">
-              <div className="flex items-start gap-2">
-                <Bell className="w-4 h-4 text-warning mt-0.5" />
-                <div className="text-xs">
-                  <div className="font-semibold">Atenção</div>
-                  <div className="text-muted-foreground">Há funcionários sem habilidades cadastradas.</div>
-                </div>
-              </div>
-            </Card>
-          )}
         </div>
       </div>
     </div>
