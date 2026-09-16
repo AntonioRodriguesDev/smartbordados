@@ -446,7 +446,7 @@ export default function Funcionarios() {
       </div>
       <h2>Apontamentos</h2>
       <table><thead><tr><th>Data</th><th style="text-align:right">${unitLabel(selected)}</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th><th>Obs.</th></tr></thead><tbody>${linhas || "<tr><td colspan=5>Sem apontamentos</td></tr>"}</tbody></table>
-      <h2>Descontos, vales e empréstimos</h2>
+      <h2>Adiantamentos, descontos e empréstimos</h2>
       <table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody>${descLinhas || "<tr><td colspan=4>Nenhum</td></tr>"}</tbody></table>
       <h2>Resumo</h2>
       <div class="tot"><span>Total de ${unitLabel(selected)}</span><span>${qtdPeriodo}</span></div>
