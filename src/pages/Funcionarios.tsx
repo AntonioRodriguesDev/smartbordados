@@ -15,7 +15,7 @@ import { brl, fmtDate, todayISO } from "@/lib/format";
 import {
   periodsForMonth, periodIndexFor, unitValue, unitLabel, unitSingular,
   tipoOf, usesEntries, entryQty, entryUnit, entryTotal, qtyPayload,
-  brutoPeriodo as calcBruto, buildInstallments, TIPOS,
+  brutoPeriodo as calcBruto, buildInstallments, TIPOS, fmtQty,
 } from "@/lib/payroll";
 import { toast } from "sonner";
 
@@ -67,7 +67,7 @@ export default function Funcionarios() {
   const [periods, setPeriods] = useState<any[]>([]);
   const [refMes, setRefMes] = useState(new Date().toISOString().slice(0, 7));
   const [periodIdx, setPeriodIdx] = useState(0);
-  const [entryForm, setEntryForm] = useState({ data: todayISO(), quantidade: "", valorUnit: "", observacao: "" });
+  const [entryForm, setEntryForm] = useState({ data: todayISO(), quantidade: "", minutos: "", valorUnit: "", observacao: "" });
   const [closing, setClosing] = useState(false);
   const [loans, setLoans] = useState<any[]>([]);
   const [parcelas, setParcelas] = useState<any[]>([]);
@@ -261,7 +261,10 @@ export default function Funcionarios() {
   const addEntry = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!selected) return;
-    const q = Number(String(entryForm.quantidade).replace(",", "."));
+    const base = Number(String(entryForm.quantidade).replace(",", ".")) || 0;
+    const mins = tipo === "hora" ? Number(String(entryForm.minutos).replace(",", ".")) || 0 : 0;
+    if (mins < 0 || mins > 59) return toast.error("Minutos devem estar entre 0 e 59");
+    const q = base + mins / 60;
     if (!q || q <= 0) return toast.error("Informe a quantidade");
     const vu = Number(String(entryForm.valorUnit).replace(",", ".")) || 0;
     const { data: { user } } = await supabase.auth.getUser();
@@ -274,7 +277,7 @@ export default function Funcionarios() {
     });
 
     if (error) return toast.error(error.message);
-    setEntryForm({ data: entryForm.data, quantidade: "", valorUnit: entryForm.valorUnit, observacao: "" });
+    setEntryForm({ data: entryForm.data, quantidade: "", minutos: "", valorUnit: entryForm.valorUnit, observacao: "" });
     load();
   };
 
@@ -678,6 +681,12 @@ export default function Funcionarios() {
                         <Label className="text-[10px] uppercase text-muted-foreground">{unitLabel(selected)}</Label>
                         <Input type="number" step="0.01" value={entryForm.quantidade} onChange={e => setEntryForm({ ...entryForm, quantidade: e.target.value })} placeholder="0" />
                       </div>
+                      {tipo === "hora" && (
+                        <div className="w-20">
+                          <Label className="text-[10px] uppercase text-muted-foreground">minutos</Label>
+                          <Input type="number" min="0" max="59" step="1" value={entryForm.minutos} onChange={e => setEntryForm({ ...entryForm, minutos: e.target.value })} placeholder="0" />
+                        </div>
+                      )}
                       <div className="w-24">
                         <Label className="text-[10px] uppercase text-muted-foreground">R$/{unitSingular(selected)}</Label>
                         <Input type="number" step="0.01" value={entryForm.valorUnit} onChange={e => setEntryForm({ ...entryForm, valorUnit: e.target.value })} placeholder={String(unit || 0)} />
@@ -702,7 +711,7 @@ export default function Funcionarios() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2"><Clock className="w-3 h-3 text-muted-foreground" /> {fmtDate(e.data)}</div>
                           <div className="text-[10px] text-muted-foreground truncate">
-                            {qtdOf(e)} × {brl(unitOf(e))}{e.observacao ? ` · ${e.observacao}` : ""}
+                            {fmtQty(selected, qtdOf(e))} × {brl(unitOf(e))}{e.observacao ? ` · ${e.observacao}` : ""}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
