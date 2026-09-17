@@ -277,7 +277,7 @@ export default function Funcionarios() {
     });
 
     if (error) return toast.error(error.message);
-    setEntryForm({ data: entryForm.data, quantidade: "", valorUnit: entryForm.valorUnit, observacao: "" });
+    setEntryForm({ data: entryForm.data, quantidade: "", minutos: "", valorUnit: entryForm.valorUnit, observacao: "" });
     load();
   };
 
