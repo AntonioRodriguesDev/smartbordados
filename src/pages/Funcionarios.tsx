@@ -678,6 +678,12 @@ export default function Funcionarios() {
                         <Label className="text-[10px] uppercase text-muted-foreground">{unitLabel(selected)}</Label>
                         <Input type="number" step="0.01" value={entryForm.quantidade} onChange={e => setEntryForm({ ...entryForm, quantidade: e.target.value })} placeholder="0" />
                       </div>
+                      {tipo === "hora" && (
+                        <div className="w-20">
+                          <Label className="text-[10px] uppercase text-muted-foreground">minutos</Label>
+                          <Input type="number" min="0" max="59" step="1" value={entryForm.minutos} onChange={e => setEntryForm({ ...entryForm, minutos: e.target.value })} placeholder="0" />
+                        </div>
+                      )}
                       <div className="w-24">
                         <Label className="text-[10px] uppercase text-muted-foreground">R$/{unitSingular(selected)}</Label>
                         <Input type="number" step="0.01" value={entryForm.valorUnit} onChange={e => setEntryForm({ ...entryForm, valorUnit: e.target.value })} placeholder={String(unit || 0)} />
@@ -702,7 +708,7 @@ export default function Funcionarios() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2"><Clock className="w-3 h-3 text-muted-foreground" /> {fmtDate(e.data)}</div>
                           <div className="text-[10px] text-muted-foreground truncate">
-                            {qtdOf(e)} × {brl(unitOf(e))}{e.observacao ? ` · ${e.observacao}` : ""}
+                            {fmtQty(selected, qtdOf(e))} × {brl(unitOf(e))}{e.observacao ? ` · ${e.observacao}` : ""}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
