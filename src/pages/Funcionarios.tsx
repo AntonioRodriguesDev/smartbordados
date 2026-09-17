@@ -15,7 +15,7 @@ import { brl, fmtDate, todayISO } from "@/lib/format";
 import {
   periodsForMonth, periodIndexFor, unitValue, unitLabel, unitSingular,
   tipoOf, usesEntries, entryQty, entryUnit, entryTotal, qtyPayload,
-  brutoPeriodo as calcBruto, buildInstallments, TIPOS,
+  brutoPeriodo as calcBruto, buildInstallments, TIPOS, fmtQty,
 } from "@/lib/payroll";
 import { toast } from "sonner";
 
