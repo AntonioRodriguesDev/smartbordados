@@ -261,7 +261,10 @@ export default function Funcionarios() {
   const addEntry = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!selected) return;
-    const q = Number(String(entryForm.quantidade).replace(",", "."));
+    const base = Number(String(entryForm.quantidade).replace(",", ".")) || 0;
+    const mins = tipo === "hora" ? Number(String(entryForm.minutos).replace(",", ".")) || 0 : 0;
+    if (mins < 0 || mins > 59) return toast.error("Minutos devem estar entre 0 e 59");
+    const q = base + mins / 60;
     if (!q || q <= 0) return toast.error("Informe a quantidade");
     const vu = Number(String(entryForm.valorUnit).replace(",", ".")) || 0;
     const { data: { user } } = await supabase.auth.getUser();
