@@ -166,6 +166,10 @@ export default function Funcionarios() {
   const liquidoPeriodo = brutoPeriodo - descontosPeriodo - adiantPeriodo - emprestimosPeriodo;
   const fechamentos = periods.filter(p => p.employee_id === selectedId);
   const periodoFechado = !!(selected && curPeriod && fechamentos.some(f => f.inicio === curPeriod.inicio && f.fim === curPeriod.fim));
+  const fechamentoAtual = selected && curPeriod ? fechamentos.find(f => f.inicio === curPeriod.inicio && f.fim === curPeriod.fim) : null;
+  const pagtoFechamento = fechamentoAtual ? payments.find(p => p.payroll_period_id === fechamentoAtual.id && p.tipo === "folha") : null;
+  const [dataPagtoState, setDataPagto] = useState(todayISO());
+  const dataPagto = pagtoFechamento?.data_pagamento || dataPagtoState;
   const totalReceber = selected ? Math.max(liquidoPeriodo, 0) : 0;
 
   useEffect(() => {
@@ -343,7 +347,7 @@ export default function Funcionarios() {
     if (liquidoPeriodo > 0) {
       await supabase.from("employee_payments").insert({
         user_id: user.id, employee_id: selected.id, valor: liquidoPeriodo,
-        data_pagamento: curPeriod.fim, tipo: "folha", payroll_period_id: periodId,
+        data_pagamento: dataPagto || curPeriod.fim, tipo: "folha", payroll_period_id: periodId,
         observacao: `Fechamento ${fmtDate(curPeriod.inicio)} a ${fmtDate(curPeriod.fim)}`,
       });
     }
@@ -410,7 +414,8 @@ export default function Funcionarios() {
       <h1>Smart Bordados — Recibo de Pagamento</h1>
       <div style="font-size:12px;margin-top:6px">
         <strong>${selected.nome}</strong> · ${selected.cargo || ""} ${selected.setor ? "· " + selected.setor : ""}<br/>
-        Período: ${fmtDate(curPeriod.inicio)} a ${fmtDate(curPeriod.fim)} · Pagamento por ${unitLabel(selected)}
+        Período trabalhado: ${fmtDate(curPeriod.inicio)} a ${fmtDate(curPeriod.fim)} · Pagamento por ${unitLabel(selected)}<br/>
+        <strong>Data do pagamento: ${fmtDate(dataPagto)}</strong>
       </div>
       <h2>Apontamentos</h2>
       <table><thead><tr><th>Data</th><th style="text-align:right">${unitLabel(selected)}</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th><th>Obs.</th></tr></thead><tbody>${linhas || "<tr><td colspan=5>Sem apontamentos</td></tr>"}</tbody></table>
@@ -750,6 +755,12 @@ export default function Funcionarios() {
                     {periodoFechado && <div className="text-[10px] text-success pt-1">Período já fechado e pago.</div>}
                   </Card>
 
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Label className="text-xs">Data do pagamento</Label>
+                      <Input type="date" value={dataPagto} onChange={e => setDataPagto(e.target.value)} disabled={periodoFechado} />
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={fecharPeriodo} disabled={closing} className="flex-1">
                       <Calculator className="w-4 h-4 mr-1" /> Fechar período
