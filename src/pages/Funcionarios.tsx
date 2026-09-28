@@ -176,6 +176,18 @@ export default function Funcionarios() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, refMes]);
 
+  // Mantém a data do apontamento dentro do período selecionado
+  useEffect(() => {
+    if (!curPeriod) return;
+    setEntryForm(f => {
+      if (f.data >= curPeriod.inicio && f.data <= curPeriod.fim) return f;
+      const t = todayISO();
+      const d = t >= curPeriod.inicio && t <= curPeriod.fim ? t : curPeriod.fim;
+      return { ...f, data: d };
+    });
+  }, [curPeriod?.inicio, curPeriod?.fim]);
+
+
 
   // CRUD
   const openNew = () => { setEditingId(null); setForm(emptyEmp); setOpen(true); };
@@ -266,6 +278,8 @@ export default function Funcionarios() {
     if (mins < 0 || mins > 59) return toast.error("Minutos devem estar entre 0 e 59");
     const q = base + mins / 60;
     if (!q || q <= 0) return toast.error("Informe a quantidade");
+    if (curPeriod && (entryForm.data < curPeriod.inicio || entryForm.data > curPeriod.fim))
+      return toast.error(`A data precisa estar dentro do período ${curPeriod.label}`);
     const vu = Number(String(entryForm.valorUnit).replace(",", ".")) || 0;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -675,7 +689,7 @@ export default function Funcionarios() {
                     <form onSubmit={addEntry} className="flex items-end gap-2 p-2 rounded-lg bg-secondary/40">
                       <div className="w-32">
                         <Label className="text-[10px] uppercase text-muted-foreground">Data</Label>
-                        <Input type="date" value={entryForm.data} onChange={e => setEntryForm({ ...entryForm, data: e.target.value })} />
+                        <Input type="date" min={curPeriod?.inicio} max={curPeriod?.fim} value={entryForm.data} onChange={e => setEntryForm({ ...entryForm, data: e.target.value })} />
                       </div>
                       <div className="w-20">
                         <Label className="text-[10px] uppercase text-muted-foreground">{unitLabel(selected)}</Label>
